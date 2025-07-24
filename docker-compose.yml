@@ -1,0 +1,194 @@
+version: '3.13'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:13
+    container_name: postgres_etl
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - etl_network
+    restart: unless-stopped
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: minio_etl
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - etl_network
+    restart: unless-stopped
+
+  # Spark Master
+  spark-master:
+    image: bitnami/spark:3.4
+    container_name: spark_master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_WORKER_MEMORY=${SPARK_WORKER_MEMORY:-2g}
+      - SPARK_WORKER_CORES=${SPARK_WORKER_CORES:-2}
+    volumes:
+      - ./spark_jobs:/opt/bitnami/spark/spark_jobs
+      - ./data:/opt/bitnami/spark/data
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    networks:
+      - etl_network
+    restart: unless-stopped
+
+  # Spark Worker
+  spark-worker:
+    image: bitnami/spark:3.4
+    container_name: spark_worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=${SPARK_MASTER_URL}
+      - SPARK_WORKER_MEMORY=${SPARK_WORKER_MEMORY:-2g}
+      - SPARK_WORKER_CORES=${SPARK_WORKER_CORES:-2}
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    volumes:
+      - ./spark_jobs:/opt/bitnami/spark/spark_jobs
+      - ./data:/opt/bitnami/spark/data
+    depends_on:
+      - spark-master
+    networks:
+      - etl_network
+    restart: unless-stopped
+
+  # Redis for Airflow
+  redis:
+    image: redis:7
+    container_name: redis_etl
+    ports:
+      - "6379:6379"
+    networks:
+      - etl_network
+    restart: unless-stopped
+
+  # Airflow Webserver
+  airflow-webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: airflow_webserver
+    user: "${AIRFLOW_UID:-50000}:0"
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=${AIRFLOW__CORE__EXECUTOR}
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY}
+      - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW_SECRET_KEY}
+      - AIRFLOW__CORE__LOAD_EXAMPLES=${AIRFLOW__CORE__LOAD_EXAMPLES:-False}
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=False
+      - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=${AIRFLOW__WEBSERVER__EXPOSE_CONFIG:-True}
+      - PYTHONPATH=/opt/airflow
+      - TZ=${TZ:-UTC}
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./spark_jobs:/opt/airflow/spark_jobs
+      - ./data:/opt/airflow/data
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres
+      - redis
+    command: >
+      bash -c "
+        airflow db init &&
+        airflow users create --username admin --firstname Admin --lastname User --email admin@admin.com --role Admin --password admin &&
+        airflow webserver
+      "
+    networks:
+      - etl_network
+    restart: unless-stopped
+
+  # Airflow Scheduler
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: airflow_scheduler
+    user: "${AIRFLOW_UID:-50000}:0"
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=${AIRFLOW__CORE__EXECUTOR}
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY}
+      - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW_SECRET_KEY}
+      - AIRFLOW__CORE__LOAD_EXAMPLES=${AIRFLOW__CORE__LOAD_EXAMPLES:-False}
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=False
+      - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=${AIRFLOW__WEBSERVER__EXPOSE_CONFIG:-True}
+      - PYTHONPATH=/opt/airflow
+      - TZ=${TZ:-UTC}
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./spark_jobs:/opt/airflow/spark_jobs
+      - ./data:/opt/airflow/data
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    depends_on:
+      - postgres
+      - redis
+      - airflow-webserver
+    command: airflow scheduler
+    networks:
+      - etl_network
+    restart: unless-stopped
+
+  # Streamlit App (COMENTADO para ETL SOLAMENTE)
+  # Descomenta si quieres usar dashboard más tarde
+  # streamlit:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.streamlit
+  #   container_name: streamlit_app
+  #   environment:
+  #     - POSTGRES_HOST=postgres
+  #     - POSTGRES_DB=${POSTGRES_DB}
+  #     - POSTGRES_USER=${POSTGRES_USER}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  #     - MINIO_ENDPOINT=minio:9000
+  #     - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+  #     - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+  #   volumes:
+  #     - ./streamlit_app:/app
+  #   ports:
+  #     - "8501:8501"
+  #   depends_on:
+  #     - postgres
+  #     - minio
+  #   networks:
+  #     - etl_network
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  etl_network:
+    driver: bridge
