@@ -1,0 +1,35 @@
+[2025-07-23T21:48:09.523-0400] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: etl_local_csv_pipeline.check_csv_files scheduled__2025-07-23T00:00:00+00:00 [queued]>
+[2025-07-23T21:48:09.533-0400] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: etl_local_csv_pipeline.check_csv_files scheduled__2025-07-23T00:00:00+00:00 [queued]>
+[2025-07-23T21:48:09.534-0400] {taskinstance.py:2170} INFO - Starting attempt 2 of 2
+[2025-07-23T21:48:09.549-0400] {taskinstance.py:2191} INFO - Executing <Task(PythonOperator): check_csv_files> on 2025-07-23 00:00:00+00:00
+[2025-07-23T21:48:09.565-0400] {standard_task_runner.py:60} INFO - Started process 299 to run task
+[2025-07-23T21:48:09.570-0400] {standard_task_runner.py:87} INFO - Running: ['airflow', 'tasks', 'run', 'etl_local_csv_pipeline', 'check_csv_files', 'scheduled__2025-07-23T00:00:00+00:00', '--job-id', '5', '--raw', '--subdir', 'DAGS_FOLDER/etl_local_dag.py', '--cfg-path', '/tmp/tmpcy4r9o5f']
+[2025-07-23T21:48:09.572-0400] {standard_task_runner.py:88} INFO - Job 5: Subtask check_csv_files
+[2025-07-23T21:48:09.653-0400] {task_command.py:423} INFO - Running <TaskInstance: etl_local_csv_pipeline.check_csv_files scheduled__2025-07-23T00:00:00+00:00 [running]> on host a253e541d1df
+[2025-07-23T21:48:09.784-0400] {taskinstance.py:2480} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='data-team' AIRFLOW_CTX_DAG_ID='etl_local_csv_pipeline' AIRFLOW_CTX_TASK_ID='check_csv_files' AIRFLOW_CTX_EXECUTION_DATE='2025-07-23T00:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='2' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2025-07-23T00:00:00+00:00'
+[2025-07-23T21:48:09.788-0400] {etl_local_dag.py:46} INFO - Found CSV files: ['2019-PT1.csv', '2019-PT2.csv', '2020-PT1.csv', '2020-PT2.csv', '2021-PT1.csv', '2021-PT2.csv', '2022-PT1.csv', '2022-PT2.csv', '2023-PT1.csv', '2023-PT2.csv']
+[2025-07-23T21:48:09.805-0400] {etl_local_dag.py:69} ERROR - Error reading 2019-PT1.csv: 'utf-8' codec can't decode byte 0xd1 in position 1: invalid continuation byte
+[2025-07-23T21:48:09.818-0400] {etl_local_dag.py:69} ERROR - Error reading 2019-PT2.csv: 'utf-8' codec can't decode byte 0xd1 in position 1: invalid continuation byte
+[2025-07-23T21:48:09.826-0400] {etl_local_dag.py:69} ERROR - Error reading 2020-PT1.csv: 'utf-8' codec can't decode byte 0xd1 in position 1: invalid continuation byte
+[2025-07-23T21:48:09.836-0400] {etl_local_dag.py:69} ERROR - Error reading 2020-PT2.csv: 'utf-8' codec can't decode byte 0xd1 in position 1: invalid continuation byte
+[2025-07-23T21:48:09.845-0400] {etl_local_dag.py:69} ERROR - Error reading 2021-PT1.csv: 'utf-8' codec can't decode byte 0xd1 in position 1: invalid continuation byte
+[2025-07-23T21:48:09.855-0400] {etl_local_dag.py:69} ERROR - Error reading 2021-PT2.csv: 'utf-8' codec can't decode byte 0xd1 in position 1: invalid continuation byte
+[2025-07-23T21:48:09.863-0400] {etl_local_dag.py:69} ERROR - Error reading 2022-PT1.csv: 'utf-8' codec can't decode byte 0xd1 in position 1: invalid continuation byte
+[2025-07-23T21:48:09.872-0400] {etl_local_dag.py:69} ERROR - Error reading 2022-PT2.csv: 'utf-8' codec can't decode byte 0xd1 in position 1: invalid continuation byte
+[2025-07-23T21:48:09.881-0400] {etl_local_dag.py:69} ERROR - Error reading 2023-PT1.csv: 'utf-8' codec can't decode byte 0xd1 in position 1: invalid continuation byte
+[2025-07-23T21:48:09.889-0400] {etl_local_dag.py:69} ERROR - Error reading 2023-PT2.csv: 'utf-8' codec can't decode byte 0xd1 in position 1: invalid continuation byte
+[2025-07-23T21:48:09.889-0400] {taskinstance.py:2698} ERROR - Task failed with exception
+Traceback (most recent call last):
+  File "/home/airflow/.local/lib/python3.10/site-packages/airflow/models/taskinstance.py", line 433, in _execute_task
+    result = execute_callable(context=context, **execute_callable_kwargs)
+  File "/home/airflow/.local/lib/python3.10/site-packages/airflow/operators/python.py", line 199, in execute
+    return_value = self.execute_callable()
+  File "/home/airflow/.local/lib/python3.10/site-packages/airflow/operators/python.py", line 216, in execute_callable
+    return self.python_callable(*self.op_args, **self.op_kwargs)
+  File "/opt/airflow/dags/etl_local_dag.py", line 72, in check_csv_files
+    raise ValueError("No valid export data files found")
+ValueError: No valid export data files found
+[2025-07-23T21:48:09.906-0400] {taskinstance.py:1138} INFO - Marking task as FAILED. dag_id=etl_local_csv_pipeline, task_id=check_csv_files, execution_date=20250723T000000, start_date=20250724T014809, end_date=20250724T014809
+[2025-07-23T21:48:09.917-0400] {standard_task_runner.py:107} ERROR - Failed to execute job 5 for task check_csv_files (No valid export data files found; 299)
+[2025-07-23T21:48:09.944-0400] {local_task_job_runner.py:234} INFO - Task exited with return code 1
+[2025-07-23T21:48:10.259-0400] {taskinstance.py:3280} INFO - 0 downstream tasks scheduled from follow-on schedule check

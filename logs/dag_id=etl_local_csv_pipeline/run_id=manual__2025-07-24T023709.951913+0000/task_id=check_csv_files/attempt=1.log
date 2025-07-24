@@ -1,0 +1,45 @@
+[2025-07-23T22:37:11.811-0400] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: etl_local_csv_pipeline.check_csv_files manual__2025-07-24T02:37:09.951913+00:00 [queued]>
+[2025-07-23T22:37:11.823-0400] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: etl_local_csv_pipeline.check_csv_files manual__2025-07-24T02:37:09.951913+00:00 [queued]>
+[2025-07-23T22:37:11.824-0400] {taskinstance.py:2170} INFO - Starting attempt 1 of 2
+[2025-07-23T22:37:11.840-0400] {taskinstance.py:2191} INFO - Executing <Task(PythonOperator): check_csv_files> on 2025-07-24 02:37:09.951913+00:00
+[2025-07-23T22:37:11.848-0400] {standard_task_runner.py:60} INFO - Started process 230 to run task
+[2025-07-23T22:37:11.855-0400] {standard_task_runner.py:87} INFO - Running: ['airflow', 'tasks', 'run', 'etl_local_csv_pipeline', 'check_csv_files', 'manual__2025-07-24T02:37:09.951913+00:00', '--job-id', '22', '--raw', '--subdir', 'DAGS_FOLDER/etl_local_dag.py', '--cfg-path', '/tmp/tmpbsaykdhp']
+[2025-07-23T22:37:11.858-0400] {standard_task_runner.py:88} INFO - Job 22: Subtask check_csv_files
+[2025-07-23T22:37:11.945-0400] {task_command.py:423} INFO - Running <TaskInstance: etl_local_csv_pipeline.check_csv_files manual__2025-07-24T02:37:09.951913+00:00 [running]> on host a253e541d1df
+[2025-07-23T22:37:12.081-0400] {taskinstance.py:2480} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='data-team' AIRFLOW_CTX_DAG_ID='etl_local_csv_pipeline' AIRFLOW_CTX_TASK_ID='check_csv_files' AIRFLOW_CTX_EXECUTION_DATE='2025-07-24T02:37:09.951913+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2025-07-24T02:37:09.951913+00:00'
+[2025-07-23T22:37:12.089-0400] {etl_local_dag.py:47} INFO - Found CSV files: ['2019-PT1.csv', '2019-PT2.csv', '2020-PT1.csv', '2020-PT2.csv', '2021-PT1.csv', '2021-PT2.csv', '2022-PT1.csv', '2022-PT2.csv', '2023-PT1.csv', '2023-PT2.csv']
+[2025-07-23T22:37:12.119-0400] {etl_local_dag.py:61} INFO - ✓ 2019-PT1.csv - Successfully read with latin-1 encoding
+[2025-07-23T22:37:12.120-0400] {etl_local_dag.py:80} INFO - ✓ 2019-PT1.csv - Valid Chilean export data file
+[2025-07-23T22:37:12.121-0400] {etl_local_dag.py:81} INFO -   Columns found: DIA, MES, AÑO, NUMERO DE ACEPTACION, ADUANA, RUT, DV, EXPORTADOR, PARTIDA ARANCELARIA, PRODUCTO...
+[2025-07-23T22:37:12.149-0400] {etl_local_dag.py:61} INFO - ✓ 2019-PT2.csv - Successfully read with latin-1 encoding
+[2025-07-23T22:37:12.150-0400] {etl_local_dag.py:80} INFO - ✓ 2019-PT2.csv - Valid Chilean export data file
+[2025-07-23T22:37:12.152-0400] {etl_local_dag.py:81} INFO -   Columns found: DIA, MES, AÑO, NUMERO DE ACEPTACION, ADUANA, RUT, DV, EXPORTADOR, PARTIDA ARANCELARIA, PRODUCTO...
+[2025-07-23T22:37:12.180-0400] {etl_local_dag.py:61} INFO - ✓ 2020-PT1.csv - Successfully read with latin-1 encoding
+[2025-07-23T22:37:12.181-0400] {etl_local_dag.py:80} INFO - ✓ 2020-PT1.csv - Valid Chilean export data file
+[2025-07-23T22:37:12.182-0400] {etl_local_dag.py:81} INFO -   Columns found: DIA, MES, AÑO, NUMERO DE ACEPTACION, ADUANA, RUT, DV, EXPORTADOR, PARTIDA ARANCELARIA, PRODUCTO...
+[2025-07-23T22:37:12.212-0400] {etl_local_dag.py:61} INFO - ✓ 2020-PT2.csv - Successfully read with latin-1 encoding
+[2025-07-23T22:37:12.213-0400] {etl_local_dag.py:80} INFO - ✓ 2020-PT2.csv - Valid Chilean export data file
+[2025-07-23T22:37:12.213-0400] {etl_local_dag.py:81} INFO -   Columns found: DIA, MES, AÑO, NUMERO DE ACEPTACION, ADUANA, RUT, DV, EXPORTADOR, PARTIDA ARANCELARIA, PRODUCTO...
+[2025-07-23T22:37:12.233-0400] {etl_local_dag.py:61} INFO - ✓ 2021-PT1.csv - Successfully read with latin-1 encoding
+[2025-07-23T22:37:12.234-0400] {etl_local_dag.py:80} INFO - ✓ 2021-PT1.csv - Valid Chilean export data file
+[2025-07-23T22:37:12.235-0400] {etl_local_dag.py:81} INFO -   Columns found: DIA, MES, AÑO, NUMERO DE ACEPTACION, ADUANA, RUT, DV, EXPORTADOR, PARTIDA ARANCELARIA, PRODUCTO...
+[2025-07-23T22:37:12.260-0400] {etl_local_dag.py:61} INFO - ✓ 2021-PT2.csv - Successfully read with latin-1 encoding
+[2025-07-23T22:37:12.261-0400] {etl_local_dag.py:80} INFO - ✓ 2021-PT2.csv - Valid Chilean export data file
+[2025-07-23T22:37:12.262-0400] {etl_local_dag.py:81} INFO -   Columns found: DIA, MES, AÑO, NUMERO DE ACEPTACION, ADUANA, RUT, DV, EXPORTADOR, PARTIDA ARANCELARIA, PRODUCTO...
+[2025-07-23T22:37:12.291-0400] {etl_local_dag.py:61} INFO - ✓ 2022-PT1.csv - Successfully read with latin-1 encoding
+[2025-07-23T22:37:12.292-0400] {etl_local_dag.py:80} INFO - ✓ 2022-PT1.csv - Valid Chilean export data file
+[2025-07-23T22:37:12.293-0400] {etl_local_dag.py:81} INFO -   Columns found: DIA, MES, AÑO, NUMERO DE ACEPTACION, ADUANA, RUT, DV, EXPORTADOR, PARTIDA ARANCELARIA, PRODUCTO...
+[2025-07-23T22:37:12.335-0400] {etl_local_dag.py:61} INFO - ✓ 2022-PT2.csv - Successfully read with latin-1 encoding
+[2025-07-23T22:37:12.337-0400] {etl_local_dag.py:80} INFO - ✓ 2022-PT2.csv - Valid Chilean export data file
+[2025-07-23T22:37:12.338-0400] {etl_local_dag.py:81} INFO -   Columns found: DIA, MES, AÑO, NUMERO DE ACEPTACION, ADUANA, RUT, DV, EXPORTADOR, PARTIDA ARANCELARIA, PRODUCTO...
+[2025-07-23T22:37:12.361-0400] {etl_local_dag.py:61} INFO - ✓ 2023-PT1.csv - Successfully read with latin-1 encoding
+[2025-07-23T22:37:12.362-0400] {etl_local_dag.py:80} INFO - ✓ 2023-PT1.csv - Valid Chilean export data file
+[2025-07-23T22:37:12.362-0400] {etl_local_dag.py:81} INFO -   Columns found: DIA, MES, AÑO, NUMERO DE ACEPTACION, ADUANA, RUT, DV, EXPORTADOR, PARTIDA ARANCELARIA, PRODUCTO...
+[2025-07-23T22:37:12.379-0400] {etl_local_dag.py:61} INFO - ✓ 2023-PT2.csv - Successfully read with latin-1 encoding
+[2025-07-23T22:37:12.380-0400] {etl_local_dag.py:80} INFO - ✓ 2023-PT2.csv - Valid Chilean export data file
+[2025-07-23T22:37:12.381-0400] {etl_local_dag.py:81} INFO -   Columns found: DIA, MES, AÑO, NUMERO DE ACEPTACION, ADUANA, RUT, DV, EXPORTADOR, PARTIDA ARANCELARIA, PRODUCTO...
+[2025-07-23T22:37:12.382-0400] {etl_local_dag.py:94} INFO - Valid export data files: ['2019-PT1.csv', '2019-PT2.csv', '2020-PT1.csv', '2020-PT2.csv', '2021-PT1.csv', '2021-PT2.csv', '2022-PT1.csv', '2022-PT2.csv', '2023-PT1.csv', '2023-PT2.csv']
+[2025-07-23T22:37:12.383-0400] {python.py:201} INFO - Done. Returned value was: ['2019-PT1.csv', '2019-PT2.csv', '2020-PT1.csv', '2020-PT2.csv', '2021-PT1.csv', '2021-PT2.csv', '2022-PT1.csv', '2022-PT2.csv', '2023-PT1.csv', '2023-PT2.csv']
+[2025-07-23T22:37:12.416-0400] {taskinstance.py:1138} INFO - Marking task as SUCCESS. dag_id=etl_local_csv_pipeline, task_id=check_csv_files, execution_date=20250724T023709, start_date=20250724T023711, end_date=20250724T023712
+[2025-07-23T22:37:12.471-0400] {local_task_job_runner.py:234} INFO - Task exited with return code 0
+[2025-07-23T22:37:12.514-0400] {taskinstance.py:3280} INFO - 1 downstream tasks scheduled from follow-on schedule check

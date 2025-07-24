@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from io import StringIO, BytesIO
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
@@ -6,8 +7,8 @@ import pandas as pd
 import os
 import logging
 from minio import Minio
-from io import StringIO
 import subprocess
+import numpy as np
 
 # Default arguments
 default_args = {
@@ -50,25 +51,44 @@ def check_csv_files():
     for file in csv_files:
         file_path = os.path.join(data_dir, file)
         try:
-            # Read first few rows to check structure
-            df_sample = pd.read_csv(file_path, nrows=5, encoding='utf-8')
+            # Try multiple encodings for Chilean CSV files
+            df_sample = None
+            encodings = ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
             
-            # Check for key export columns (using flexible matching)
-            expected_columns = ['US$ FOB', 'PAIS DE DESTINO', 'PRODUCTO', 'PESO BRUTO']
+            for encoding in encodings:
+                try:
+                    df_sample = pd.read_csv(file_path, nrows=5, encoding=encoding)
+                    logging.info(f"✓ {file} - Successfully read with {encoding} encoding")
+                    break
+                except UnicodeDecodeError:
+                    continue
             
-            # Check if at least some expected columns exist
-            found_columns = [col for col in expected_columns if any(expected.lower() in col.lower() for expected in expected_columns if col in df_sample.columns)]
+            if df_sample is None:
+                logging.error(f"⚠ {file} - Could not read with any encoding")
+                continue
             
-            if len(found_columns) >= 2:  # At least 2 key columns found
+            # Check for key export columns - more flexible matching
+            file_columns = [col.strip().upper() for col in df_sample.columns]
+            
+            # Look for key Chilean export indicators
+            has_fob = any('FOB' in col and ('US$' in col or 'USD' in col or 'DOLAR' in col) for col in file_columns)
+            has_country = any('PAIS' in col and 'DESTINO' in col for col in file_columns)
+            has_product = any('PRODUCTO' in col for col in file_columns)
+            
+            if has_fob and has_country:  # At least FOB and destination country
                 valid_files.append(file)
-                logging.info(f"✓ {file} - Valid export data file")
+                logging.info(f"✓ {file} - Valid Chilean export data file")
+                logging.info(f"  Columns found: {', '.join(file_columns[:10])}...")  # Show first 10 columns
             else:
                 logging.warning(f"⚠ {file} - Doesn't match expected export data structure")
+                logging.warning(f"  Has FOB: {has_fob}, Has Country: {has_country}, Has Product: {has_product}")
                 
         except Exception as e:
             logging.error(f"Error reading {file}: {str(e)}")
     
     if not valid_files:
+        logging.error("No valid export data files found after checking all CSVs")
+        logging.error("Files checked: " + ", ".join(csv_files))
         raise ValueError("No valid export data files found")
     
     logging.info(f"Valid export data files: {valid_files}")
@@ -114,15 +134,15 @@ def extract_and_upload_to_minio():
             
             csv_string = df.to_csv(index=False)
             csv_bytes = csv_string.encode('utf-8')
-            
+
             object_name = f"raw/local_data/{file}"
             minio_client.put_object(
                 bucket_name,
                 object_name,
-                data=StringIO(csv_string),
+                data=BytesIO(csv_bytes),  # ← ARREGLADO
                 length=len(csv_bytes),
                 content_type='text/csv'
-            )
+        )
             
             uploaded_files.append(object_name)
             logging.info(f"Uploaded {file} to MinIO as {object_name}")
@@ -138,30 +158,113 @@ def extract_and_upload_to_minio():
 
 def trigger_spark_transformation():
     """Trigger Spark job for Chilean export data transformation"""
-    spark_job_path = "/opt/airflow/spark_jobs/transform_local_data.py"
-    
-    spark_submit_cmd = [
-        "/opt/bitnami/spark/bin/spark-submit",
-        "--master", "spark://spark-master:7077",
-        "--packages", "org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.11.1034",
-        "--py-files", spark_job_path,
-        spark_job_path
-    ]
+    import subprocess
+    import docker
     
     try:
-        result = subprocess.run(spark_submit_cmd, capture_output=True, text=True, timeout=1800)
+        # Use docker client to execute spark-submit in the spark-master container
+        docker_cmd = [
+            "docker", "exec", "spark_master",
+            "/opt/bitnami/spark/bin/spark-submit",
+            "--master", "spark://spark-master:7077",
+            "--packages", "org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.11.1034",
+            "/opt/bitnami/spark/spark_jobs/transform_local_data.py"
+        ]
+        
+        logging.info(f"Executing Spark job with command: {' '.join(docker_cmd)}")
+        
+        result = subprocess.run(docker_cmd, capture_output=True, text=True, timeout=1800)
+        
         if result.returncode != 0:
             logging.error(f"Spark job failed: {result.stderr}")
+            logging.error(f"Spark stdout: {result.stdout}")
             raise Exception(f"Spark job failed: {result.stderr}")
         
         logging.info("Spark transformation completed successfully")
         logging.info(f"Spark output: {result.stdout}")
+        
+        return True
         
     except subprocess.TimeoutExpired:
         logging.error("Spark job timed out after 30 minutes")
         raise Exception("Spark job timed out")
     except Exception as e:
         logging.error(f"Error running Spark job: {str(e)}")
+        # Fallback to pandas processing
+        logging.info("Falling back to pandas processing...")
+        return trigger_pandas_transformation()
+
+def trigger_pandas_transformation():
+    """Fallback: Process data using pandas instead of Spark"""
+    
+    logging.info("Starting pandas transformation as Spark fallback...")
+    
+    # MinIO connection
+    minio_client = Minio(
+        'minio:9000',
+        access_key='minioadmin',
+        secret_key='minioadmin123',
+        secure=False
+    )
+    
+    bucket_name = 'etl-data'
+    
+    try:
+        # List all CSV files in raw/local_data/
+        objects = minio_client.list_objects(bucket_name, prefix='raw/local_data/', recursive=True)
+        
+        all_dataframes = []
+        
+        for obj in objects:
+            if obj.object_name.endswith('.csv'):
+                logging.info(f"Processing {obj.object_name}")
+                
+                # Read CSV from MinIO
+                response = minio_client.get_object(bucket_name, obj.object_name)
+                df = pd.read_csv(response)
+                
+                # Basic transformations
+                df.columns = [col.strip().upper() for col in df.columns]
+                
+                # Clean FOB values
+                if 'US$ FOB' in df.columns:
+                    df['US$ FOB'] = pd.to_numeric(df['US$ FOB'], errors='coerce')
+                    df = df[df['US$ FOB'] > 0]  # Filter valid FOB values
+                
+                # Add processing metadata
+                df['PROCESSED_AT'] = datetime.now()
+                df['PROCESSING_METHOD'] = 'PANDAS_FALLBACK'
+                
+                all_dataframes.append(df)
+                logging.info(f"Processed {len(df)} records from {obj.object_name}")
+        
+        if all_dataframes:
+            # Combine all DataFrames
+            combined_df = pd.concat(all_dataframes, ignore_index=True)
+            logging.info(f"Combined {len(combined_df)} total records")
+            
+            # Upload processed data back to MinIO
+            csv_string = combined_df.to_csv(index=False)
+            processed_object_name = f"processed/local_data/processed_export_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            
+            minio_client.put_object(
+                bucket_name,
+                processed_object_name,
+                data=BytesIO(csv_string.encode('utf-8')),
+                length=len(csv_string.encode('utf-8')),
+                content_type='text/csv'
+            )
+            
+            logging.info(f"SUCCESS: Processed data uploaded to {processed_object_name}")
+            logging.info(f"Total records processed: {len(combined_df)}")
+            
+            return True
+        else:
+            logging.error("No data files found to process")
+            return False
+            
+    except Exception as e:
+        logging.error(f"Error in pandas transformation: {str(e)}")
         raise
 
 def load_to_postgres():

@@ -1,0 +1,31 @@
+[2025-07-23T22:27:21.339-0400] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: etl_local_csv_pipeline.trigger_spark_transformation manual__2025-07-24T02:21:16.705138+00:00 [queued]>
+[2025-07-23T22:27:21.356-0400] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: etl_local_csv_pipeline.trigger_spark_transformation manual__2025-07-24T02:21:16.705138+00:00 [queued]>
+[2025-07-23T22:27:21.357-0400] {taskinstance.py:2170} INFO - Starting attempt 2 of 2
+[2025-07-23T22:27:21.388-0400] {taskinstance.py:2191} INFO - Executing <Task(PythonOperator): trigger_spark_transformation> on 2025-07-24 02:21:16.705138+00:00
+[2025-07-23T22:27:21.402-0400] {standard_task_runner.py:60} INFO - Started process 417 to run task
+[2025-07-23T22:27:21.411-0400] {standard_task_runner.py:87} INFO - Running: ['airflow', 'tasks', 'run', 'etl_local_csv_pipeline', 'trigger_spark_transformation', 'manual__2025-07-24T02:21:16.705138+00:00', '--job-id', '20', '--raw', '--subdir', 'DAGS_FOLDER/etl_local_dag.py', '--cfg-path', '/tmp/tmpbq3xoh5c']
+[2025-07-23T22:27:21.415-0400] {standard_task_runner.py:88} INFO - Job 20: Subtask trigger_spark_transformation
+[2025-07-23T22:27:21.513-0400] {task_command.py:423} INFO - Running <TaskInstance: etl_local_csv_pipeline.trigger_spark_transformation manual__2025-07-24T02:21:16.705138+00:00 [running]> on host a253e541d1df
+[2025-07-23T22:27:21.631-0400] {taskinstance.py:2480} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='data-team' AIRFLOW_CTX_DAG_ID='etl_local_csv_pipeline' AIRFLOW_CTX_TASK_ID='trigger_spark_transformation' AIRFLOW_CTX_EXECUTION_DATE='2025-07-24T02:21:16.705138+00:00' AIRFLOW_CTX_TRY_NUMBER='2' AIRFLOW_CTX_DAG_RUN_ID='manual__2025-07-24T02:21:16.705138+00:00'
+[2025-07-23T22:27:21.635-0400] {etl_local_dag.py:184} ERROR - Error running Spark job: [Errno 2] No such file or directory: '/opt/bitnami/spark/bin/spark-submit'
+[2025-07-23T22:27:21.636-0400] {taskinstance.py:2698} ERROR - Task failed with exception
+Traceback (most recent call last):
+  File "/home/airflow/.local/lib/python3.10/site-packages/airflow/models/taskinstance.py", line 433, in _execute_task
+    result = execute_callable(context=context, **execute_callable_kwargs)
+  File "/home/airflow/.local/lib/python3.10/site-packages/airflow/operators/python.py", line 199, in execute
+    return_value = self.execute_callable()
+  File "/home/airflow/.local/lib/python3.10/site-packages/airflow/operators/python.py", line 216, in execute_callable
+    return self.python_callable(*self.op_args, **self.op_kwargs)
+  File "/opt/airflow/dags/etl_local_dag.py", line 172, in trigger_spark_transformation
+    result = subprocess.run(spark_submit_cmd, capture_output=True, text=True, timeout=1800)
+  File "/usr/local/lib/python3.10/subprocess.py", line 503, in run
+    with Popen(*popenargs, **kwargs) as process:
+  File "/usr/local/lib/python3.10/subprocess.py", line 971, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/usr/local/lib/python3.10/subprocess.py", line 1863, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: '/opt/bitnami/spark/bin/spark-submit'
+[2025-07-23T22:27:21.656-0400] {taskinstance.py:1138} INFO - Marking task as FAILED. dag_id=etl_local_csv_pipeline, task_id=trigger_spark_transformation, execution_date=20250724T022116, start_date=20250724T022721, end_date=20250724T022721
+[2025-07-23T22:27:21.672-0400] {standard_task_runner.py:107} ERROR - Failed to execute job 20 for task trigger_spark_transformation ([Errno 2] No such file or directory: '/opt/bitnami/spark/bin/spark-submit'; 417)
+[2025-07-23T22:27:21.705-0400] {local_task_job_runner.py:234} INFO - Task exited with return code 1
+[2025-07-23T22:27:21.747-0400] {taskinstance.py:3280} INFO - 0 downstream tasks scheduled from follow-on schedule check

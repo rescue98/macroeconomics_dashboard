@@ -1,0 +1,30 @@
+[2025-07-23T22:03:31.251-0400] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: etl_worldbank_gdp_pipeline.upload_to_minio manual__2025-07-24T02:03:26.813876+00:00 [queued]>
+[2025-07-23T22:03:31.262-0400] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: etl_worldbank_gdp_pipeline.upload_to_minio manual__2025-07-24T02:03:26.813876+00:00 [queued]>
+[2025-07-23T22:03:31.263-0400] {taskinstance.py:2170} INFO - Starting attempt 1 of 3
+[2025-07-23T22:03:31.284-0400] {taskinstance.py:2191} INFO - Executing <Task(PythonOperator): upload_to_minio> on 2025-07-24 02:03:26.813876+00:00
+[2025-07-23T22:03:31.290-0400] {standard_task_runner.py:60} INFO - Started process 266 to run task
+[2025-07-23T22:03:31.295-0400] {standard_task_runner.py:87} INFO - Running: ['airflow', 'tasks', 'run', 'etl_worldbank_gdp_pipeline', 'upload_to_minio', 'manual__2025-07-24T02:03:26.813876+00:00', '--job-id', '12', '--raw', '--subdir', 'DAGS_FOLDER/etl_worldbank_dag.py', '--cfg-path', '/tmp/tmp8qfs_rip']
+[2025-07-23T22:03:31.299-0400] {standard_task_runner.py:88} INFO - Job 12: Subtask upload_to_minio
+[2025-07-23T22:03:31.407-0400] {task_command.py:423} INFO - Running <TaskInstance: etl_worldbank_gdp_pipeline.upload_to_minio manual__2025-07-24T02:03:26.813876+00:00 [running]> on host a253e541d1df
+[2025-07-23T22:03:31.514-0400] {taskinstance.py:2480} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='data-team' AIRFLOW_CTX_DAG_ID='etl_worldbank_gdp_pipeline' AIRFLOW_CTX_TASK_ID='upload_to_minio' AIRFLOW_CTX_EXECUTION_DATE='2025-07-24T02:03:26.813876+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2025-07-24T02:03:26.813876+00:00'
+[2025-07-23T22:03:31.547-0400] {taskinstance.py:2698} ERROR - Task failed with exception
+Traceback (most recent call last):
+  File "/home/airflow/.local/lib/python3.10/site-packages/airflow/models/taskinstance.py", line 433, in _execute_task
+    result = execute_callable(context=context, **execute_callable_kwargs)
+  File "/home/airflow/.local/lib/python3.10/site-packages/airflow/operators/python.py", line 199, in execute
+    return_value = self.execute_callable()
+  File "/home/airflow/.local/lib/python3.10/site-packages/airflow/operators/python.py", line 216, in execute_callable
+    return self.python_callable(*self.op_args, **self.op_kwargs)
+  File "/opt/airflow/dags/etl_worldbank_dag.py", line 130, in upload_to_minio
+    minio_client.put_object(
+  File "/home/airflow/.local/lib/python3.10/site-packages/minio/api.py", line 1760, in put_object
+    raise exc
+  File "/home/airflow/.local/lib/python3.10/site-packages/minio/api.py", line 1689, in put_object
+    part_data = read_part_data(
+  File "/home/airflow/.local/lib/python3.10/site-packages/minio/helpers.py", line 174, in read_part_data
+    raise ValueError("read() must return 'bytes' object")
+ValueError: read() must return 'bytes' object
+[2025-07-23T22:03:31.564-0400] {taskinstance.py:1138} INFO - Marking task as UP_FOR_RETRY. dag_id=etl_worldbank_gdp_pipeline, task_id=upload_to_minio, execution_date=20250724T020326, start_date=20250724T020331, end_date=20250724T020331
+[2025-07-23T22:03:31.818-0400] {standard_task_runner.py:107} ERROR - Failed to execute job 12 for task upload_to_minio (read() must return 'bytes' object; 266)
+[2025-07-23T22:03:31.870-0400] {local_task_job_runner.py:234} INFO - Task exited with return code 1
+[2025-07-23T22:03:31.898-0400] {taskinstance.py:3280} INFO - 0 downstream tasks scheduled from follow-on schedule check

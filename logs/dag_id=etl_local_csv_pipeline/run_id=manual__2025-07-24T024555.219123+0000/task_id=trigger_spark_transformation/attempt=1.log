@@ -1,0 +1,52 @@
+[2025-07-23T22:46:54.550-0400] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: etl_local_csv_pipeline.trigger_spark_transformation manual__2025-07-24T02:45:55.219123+00:00 [queued]>
+[2025-07-23T22:46:54.565-0400] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: etl_local_csv_pipeline.trigger_spark_transformation manual__2025-07-24T02:45:55.219123+00:00 [queued]>
+[2025-07-23T22:46:54.566-0400] {taskinstance.py:2170} INFO - Starting attempt 1 of 2
+[2025-07-23T22:46:54.589-0400] {taskinstance.py:2191} INFO - Executing <Task(PythonOperator): trigger_spark_transformation> on 2025-07-24 02:45:55.219123+00:00
+[2025-07-23T22:46:54.597-0400] {standard_task_runner.py:60} INFO - Started process 549 to run task
+[2025-07-23T22:46:54.604-0400] {standard_task_runner.py:87} INFO - Running: ['airflow', 'tasks', 'run', 'etl_local_csv_pipeline', 'trigger_spark_transformation', 'manual__2025-07-24T02:45:55.219123+00:00', '--job-id', '29', '--raw', '--subdir', 'DAGS_FOLDER/etl_local_dag.py', '--cfg-path', '/tmp/tmpggjy_nkr']
+[2025-07-23T22:46:54.609-0400] {standard_task_runner.py:88} INFO - Job 29: Subtask trigger_spark_transformation
+[2025-07-23T22:46:54.689-0400] {task_command.py:423} INFO - Running <TaskInstance: etl_local_csv_pipeline.trigger_spark_transformation manual__2025-07-24T02:45:55.219123+00:00 [running]> on host a253e541d1df
+[2025-07-23T22:46:54.795-0400] {taskinstance.py:2480} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='data-team' AIRFLOW_CTX_DAG_ID='etl_local_csv_pipeline' AIRFLOW_CTX_TASK_ID='trigger_spark_transformation' AIRFLOW_CTX_EXECUTION_DATE='2025-07-24T02:45:55.219123+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2025-07-24T02:45:55.219123+00:00'
+[2025-07-23T22:46:55.202-0400] {etl_local_dag.py:174} INFO - Executing Spark job with command: docker exec spark_master /opt/bitnami/spark/bin/spark-submit --master spark://spark-master:7077 --packages org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.11.1034 /opt/bitnami/spark/spark_jobs/transform_local_data.py
+[2025-07-23T22:46:55.310-0400] {etl_local_dag.py:179} ERROR - Spark job failed: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?
+
+[2025-07-23T22:46:55.311-0400] {etl_local_dag.py:180} ERROR - Spark stdout: 
+[2025-07-23T22:46:55.313-0400] {etl_local_dag.py:192} ERROR - Error running Spark job: Spark job failed: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?
+
+[2025-07-23T22:46:55.314-0400] {etl_local_dag.py:194} INFO - Falling back to pandas processing...
+[2025-07-23T22:46:55.314-0400] {etl_local_dag.py:200} INFO - Starting pandas transformation as Spark fallback...
+[2025-07-23T22:46:55.334-0400] {etl_local_dag.py:220} INFO - Processing raw/local_data/2019-PT1.csv
+[2025-07-23T22:46:56.512-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:224 DtypeWarning: Columns (46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:46:56.887-0400] {etl_local_dag.py:239} INFO - Processed 148777 records from raw/local_data/2019-PT1.csv
+[2025-07-23T22:46:56.888-0400] {etl_local_dag.py:220} INFO - Processing raw/local_data/2019-PT2.csv
+[2025-07-23T22:46:57.565-0400] {etl_local_dag.py:239} INFO - Processed 74542 records from raw/local_data/2019-PT2.csv
+[2025-07-23T22:46:57.566-0400] {etl_local_dag.py:220} INFO - Processing raw/local_data/2020-PT1.csv
+[2025-07-23T22:46:58.703-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:224 DtypeWarning: Columns (46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:46:59.091-0400] {etl_local_dag.py:239} INFO - Processed 140405 records from raw/local_data/2020-PT1.csv
+[2025-07-23T22:46:59.092-0400] {etl_local_dag.py:220} INFO - Processing raw/local_data/2020-PT2.csv
+[2025-07-23T22:46:59.677-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:224 DtypeWarning: Columns (46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:46:59.820-0400] {etl_local_dag.py:239} INFO - Processed 77736 records from raw/local_data/2020-PT2.csv
+[2025-07-23T22:46:59.821-0400] {etl_local_dag.py:220} INFO - Processing raw/local_data/2021-PT1.csv
+[2025-07-23T22:47:01.046-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:224 DtypeWarning: Columns (46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:47:01.474-0400] {etl_local_dag.py:239} INFO - Processed 151092 records from raw/local_data/2021-PT1.csv
+[2025-07-23T22:47:01.475-0400] {etl_local_dag.py:220} INFO - Processing raw/local_data/2021-PT2.csv
+[2025-07-23T22:47:02.091-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:224 DtypeWarning: Columns (46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:47:02.201-0400] {etl_local_dag.py:239} INFO - Processed 73171 records from raw/local_data/2021-PT2.csv
+[2025-07-23T22:47:02.202-0400] {etl_local_dag.py:220} INFO - Processing raw/local_data/2022-PT1.csv
+[2025-07-23T22:47:03.945-0400] {etl_local_dag.py:239} INFO - Processed 159312 records from raw/local_data/2022-PT1.csv
+[2025-07-23T22:47:03.948-0400] {etl_local_dag.py:220} INFO - Processing raw/local_data/2022-PT2.csv
+[2025-07-23T22:47:04.417-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:224 DtypeWarning: Columns (46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:47:04.706-0400] {etl_local_dag.py:239} INFO - Processed 70924 records from raw/local_data/2022-PT2.csv
+[2025-07-23T22:47:04.711-0400] {etl_local_dag.py:220} INFO - Processing raw/local_data/2023-PT1.csv
+[2025-07-23T22:47:06.596-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:224 DtypeWarning: Columns (5,46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:47:07.094-0400] {etl_local_dag.py:239} INFO - Processed 147285 records from raw/local_data/2023-PT1.csv
+[2025-07-23T22:47:07.096-0400] {etl_local_dag.py:220} INFO - Processing raw/local_data/2023-PT2.csv
+[2025-07-23T22:47:08.184-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:224 DtypeWarning: Columns (46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:47:08.371-0400] {etl_local_dag.py:239} INFO - Processed 71409 records from raw/local_data/2023-PT2.csv
+[2025-07-23T22:47:09.870-0400] {etl_local_dag.py:244} INFO - Combined 1114653 total records
+[2025-07-23T22:47:54.178-0400] {etl_local_dag.py:258} INFO - SUCCESS: Processed data uploaded to processed/local_data/processed_export_data_20250723_224744.csv
+[2025-07-23T22:47:54.182-0400] {etl_local_dag.py:259} INFO - Total records processed: 1114653
+[2025-07-23T22:47:54.800-0400] {python.py:201} INFO - Done. Returned value was: True
+[2025-07-23T22:47:54.929-0400] {taskinstance.py:1138} INFO - Marking task as SUCCESS. dag_id=etl_local_csv_pipeline, task_id=trigger_spark_transformation, execution_date=20250724T024555, start_date=20250724T024654, end_date=20250724T024754
+[2025-07-23T22:47:55.064-0400] {local_task_job_runner.py:234} INFO - Task exited with return code 0
+[2025-07-23T22:47:55.147-0400] {taskinstance.py:3280} INFO - 1 downstream tasks scheduled from follow-on schedule check

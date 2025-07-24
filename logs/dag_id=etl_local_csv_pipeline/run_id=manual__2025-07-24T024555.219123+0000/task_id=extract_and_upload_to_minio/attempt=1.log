@@ -1,0 +1,41 @@
+[2025-07-23T22:45:59.673-0400] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: etl_local_csv_pipeline.extract_and_upload_to_minio manual__2025-07-24T02:45:55.219123+00:00 [queued]>
+[2025-07-23T22:45:59.693-0400] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: etl_local_csv_pipeline.extract_and_upload_to_minio manual__2025-07-24T02:45:55.219123+00:00 [queued]>
+[2025-07-23T22:45:59.694-0400] {taskinstance.py:2170} INFO - Starting attempt 1 of 2
+[2025-07-23T22:45:59.716-0400] {taskinstance.py:2191} INFO - Executing <Task(PythonOperator): extract_and_upload_to_minio> on 2025-07-24 02:45:55.219123+00:00
+[2025-07-23T22:45:59.727-0400] {standard_task_runner.py:60} INFO - Started process 492 to run task
+[2025-07-23T22:45:59.739-0400] {standard_task_runner.py:87} INFO - Running: ['airflow', 'tasks', 'run', 'etl_local_csv_pipeline', 'extract_and_upload_to_minio', 'manual__2025-07-24T02:45:55.219123+00:00', '--job-id', '28', '--raw', '--subdir', 'DAGS_FOLDER/etl_local_dag.py', '--cfg-path', '/tmp/tmpbdgc1n9a']
+[2025-07-23T22:45:59.751-0400] {standard_task_runner.py:88} INFO - Job 28: Subtask extract_and_upload_to_minio
+[2025-07-23T22:45:59.881-0400] {task_command.py:423} INFO - Running <TaskInstance: etl_local_csv_pipeline.extract_and_upload_to_minio manual__2025-07-24T02:45:55.219123+00:00 [running]> on host a253e541d1df
+[2025-07-23T22:46:00.129-0400] {taskinstance.py:2480} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='data-team' AIRFLOW_CTX_DAG_ID='etl_local_csv_pipeline' AIRFLOW_CTX_TASK_ID='extract_and_upload_to_minio' AIRFLOW_CTX_EXECUTION_DATE='2025-07-24T02:45:55.219123+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2025-07-24T02:45:55.219123+00:00'
+[2025-07-23T22:46:03.876-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:124 DtypeWarning: Columns (46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:46:04.238-0400] {etl_local_dag.py:128} INFO - File 2019-PT1.csv loaded with 148777 rows and 53 columns
+[2025-07-23T22:46:08.759-0400] {etl_local_dag.py:148} INFO - Uploaded 2019-PT1.csv to MinIO as raw/local_data/2019-PT1.csv
+[2025-07-23T22:46:10.129-0400] {etl_local_dag.py:128} INFO - File 2019-PT2.csv loaded with 74548 rows and 53 columns
+[2025-07-23T22:46:11.708-0400] {etl_local_dag.py:148} INFO - Uploaded 2019-PT2.csv to MinIO as raw/local_data/2019-PT2.csv
+[2025-07-23T22:46:15.948-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:124 DtypeWarning: Columns (46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:46:16.282-0400] {etl_local_dag.py:128} INFO - File 2020-PT1.csv loaded with 140414 rows and 53 columns
+[2025-07-23T22:46:19.831-0400] {etl_local_dag.py:148} INFO - Uploaded 2020-PT1.csv to MinIO as raw/local_data/2020-PT1.csv
+[2025-07-23T22:46:20.948-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:124 DtypeWarning: Columns (46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:46:21.062-0400] {etl_local_dag.py:128} INFO - File 2020-PT2.csv loaded with 77740 rows and 53 columns
+[2025-07-23T22:46:23.405-0400] {etl_local_dag.py:148} INFO - Uploaded 2020-PT2.csv to MinIO as raw/local_data/2020-PT2.csv
+[2025-07-23T22:46:26.230-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:124 DtypeWarning: Columns (46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:46:26.514-0400] {etl_local_dag.py:128} INFO - File 2021-PT1.csv loaded with 151096 rows and 53 columns
+[2025-07-23T22:46:30.352-0400] {etl_local_dag.py:148} INFO - Uploaded 2021-PT1.csv to MinIO as raw/local_data/2021-PT1.csv
+[2025-07-23T22:46:31.632-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:124 DtypeWarning: Columns (46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:46:31.714-0400] {etl_local_dag.py:128} INFO - File 2021-PT2.csv loaded with 73173 rows and 53 columns
+[2025-07-23T22:46:34.993-0400] {etl_local_dag.py:148} INFO - Uploaded 2021-PT2.csv to MinIO as raw/local_data/2021-PT2.csv
+[2025-07-23T22:46:37.661-0400] {etl_local_dag.py:128} INFO - File 2022-PT1.csv loaded with 159321 rows and 53 columns
+[2025-07-23T22:46:41.374-0400] {etl_local_dag.py:148} INFO - Uploaded 2022-PT1.csv to MinIO as raw/local_data/2022-PT1.csv
+[2025-07-23T22:46:42.326-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:124 DtypeWarning: Columns (46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:46:42.391-0400] {etl_local_dag.py:128} INFO - File 2022-PT2.csv loaded with 70925 rows and 53 columns
+[2025-07-23T22:46:43.777-0400] {etl_local_dag.py:148} INFO - Uploaded 2022-PT2.csv to MinIO as raw/local_data/2022-PT2.csv
+[2025-07-23T22:46:45.896-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:124 DtypeWarning: Columns (5,46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:46:46.080-0400] {etl_local_dag.py:128} INFO - File 2023-PT1.csv loaded with 147288 rows and 53 columns
+[2025-07-23T22:46:49.591-0400] {etl_local_dag.py:148} INFO - Uploaded 2023-PT1.csv to MinIO as raw/local_data/2023-PT1.csv
+[2025-07-23T22:46:50.821-0400] {logging_mixin.py:188} WARNING - /opt/airflow/dags/etl_local_dag.py:124 DtypeWarning: Columns (46) have mixed types. Specify dtype option on import or set low_memory=False.
+[2025-07-23T22:46:50.875-0400] {etl_local_dag.py:128} INFO - File 2023-PT2.csv loaded with 71409 rows and 53 columns
+[2025-07-23T22:46:52.649-0400] {etl_local_dag.py:148} INFO - Uploaded 2023-PT2.csv to MinIO as raw/local_data/2023-PT2.csv
+[2025-07-23T22:46:52.659-0400] {python.py:201} INFO - Done. Returned value was: ['raw/local_data/2019-PT1.csv', 'raw/local_data/2019-PT2.csv', 'raw/local_data/2020-PT1.csv', 'raw/local_data/2020-PT2.csv', 'raw/local_data/2021-PT1.csv', 'raw/local_data/2021-PT2.csv', 'raw/local_data/2022-PT1.csv', 'raw/local_data/2022-PT2.csv', 'raw/local_data/2023-PT1.csv', 'raw/local_data/2023-PT2.csv']
+[2025-07-23T22:46:52.686-0400] {taskinstance.py:1138} INFO - Marking task as SUCCESS. dag_id=etl_local_csv_pipeline, task_id=extract_and_upload_to_minio, execution_date=20250724T024555, start_date=20250724T024559, end_date=20250724T024652
+[2025-07-23T22:46:52.749-0400] {local_task_job_runner.py:234} INFO - Task exited with return code 0
+[2025-07-23T22:46:52.792-0400] {taskinstance.py:3280} INFO - 1 downstream tasks scheduled from follow-on schedule check
