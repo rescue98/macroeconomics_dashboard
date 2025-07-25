@@ -159,31 +159,30 @@ services:
       - etl_network
     restart: unless-stopped
 
-  # Streamlit App (COMENTADO para ETL SOLAMENTE)
-  # Descomenta si quieres usar dashboard más tarde
-  # streamlit:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.streamlit
-  #   container_name: streamlit_app
-  #   environment:
-  #     - POSTGRES_HOST=postgres
-  #     - POSTGRES_DB=${POSTGRES_DB}
-  #     - POSTGRES_USER=${POSTGRES_USER}
-  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-  #     - MINIO_ENDPOINT=minio:9000
-  #     - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
-  #     - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
-  #   volumes:
-  #     - ./streamlit_app:/app
-  #   ports:
-  #     - "8501:8501"
-  #   depends_on:
-  #     - postgres
-  #     - minio
-  #   networks:
-  #     - etl_network
-  #   restart: unless-stopped
+
+  streamlit:
+     build:
+       context: .
+       dockerfile: Dockerfile.streamlit
+     container_name: streamlit_app
+     environment:
+       - POSTGRES_HOST=postgres
+       - POSTGRES_DB=${POSTGRES_DB}
+       - POSTGRES_USER=${POSTGRES_USER}
+       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+       - MINIO_ENDPOINT=minio:9000
+       - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+       - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+     volumes:
+       - ./streamlit_app:/app
+     ports:
+       - "8501:8501"
+     depends_on:
+       - postgres
+       - minio
+     networks:
+       - etl_network
+     restart: unless-stopped
 
 volumes:
   postgres_data:

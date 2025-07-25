@@ -2,3 +2,10 @@
 *.xlsx  
 *.xls
 data/
+logs/
+*.pkl
+*.joblib
+__pycache__/
+*.pyc
+.env.local
+.DS_Store

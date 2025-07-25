@@ -1821,3 +1821,83 @@ File Path                               PID    Runtime      # DAGs    # Errors  
 /opt/airflow/dags/etl_local_dag.py                               1           0  0.53s           2025-07-24T03:44:48
 /opt/airflow/dags/etl_worldbank_dag.py                           1           0  0.50s           2025-07-24T03:44:48
 ================================================================================
+[2025-07-24T18:09:36.826-0400] {manager.py:469} INFO - Processing files using up to 1 processes at a time 
+[2025-07-24T18:09:36.829-0400] {manager.py:470} INFO - Process each file at most once every 30 seconds
+[2025-07-24T18:09:36.830-0400] {manager.py:471} INFO - Checking for new files in /opt/airflow/dags every 300 seconds
+[2025-07-24T18:09:36.832-0400] {manager.py:738} INFO - Searching for files in /opt/airflow/dags
+[2025-07-24T18:09:36.898-0400] {manager.py:741} INFO - There are 3 files in /opt/airflow/dags
+[2025-07-24T18:09:37.498-0400] {manager.py:879} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                PID    Runtime      # DAGs    # Errors  Last Runtime    Last Run
+---------------------------------------  -----  ---------  --------  ----------  --------------  -------------------
+/opt/airflow/dags/etl_local_dag.py                                0           0
+/opt/airflow/dags/model_training_dag.py                           0           0
+/opt/airflow/dags/etl_worldbank_dag.py                            1           0  0.51s           2025-07-24T22:09:37
+================================================================================
+[2025-07-24T18:27:01.460-0400] {manager.py:451} INFO - Exiting gracefully upon receiving signal 15
+[2025-07-24T18:27:19.444-0400] {manager.py:469} INFO - Processing files using up to 1 processes at a time 
+[2025-07-24T18:27:19.445-0400] {manager.py:470} INFO - Process each file at most once every 30 seconds
+[2025-07-24T18:27:19.447-0400] {manager.py:471} INFO - Checking for new files in /opt/airflow/dags every 300 seconds
+[2025-07-24T18:27:19.447-0400] {manager.py:738} INFO - Searching for files in /opt/airflow/dags
+[2025-07-24T18:27:19.521-0400] {manager.py:741} INFO - There are 3 files in /opt/airflow/dags
+[2025-07-24T18:27:20.721-0400] {manager.py:879} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                PID    Runtime      # DAGs    # Errors  Last Runtime    Last Run
+---------------------------------------  -----  ---------  --------  ----------  --------------  -------------------
+/opt/airflow/dags/etl_local_dag.py                                0           0
+/opt/airflow/dags/model_training_dag.py                           0           0
+/opt/airflow/dags/etl_worldbank_dag.py                            1           0  1.13s           2025-07-24T22:27:20
+================================================================================
+[2025-07-24T18:41:18.473-0400] {manager.py:451} INFO - Exiting gracefully upon receiving signal 15
+[2025-07-24T18:41:38.128-0400] {manager.py:469} INFO - Processing files using up to 1 processes at a time 
+[2025-07-24T18:41:38.130-0400] {manager.py:470} INFO - Process each file at most once every 30 seconds
+[2025-07-24T18:41:38.132-0400] {manager.py:471} INFO - Checking for new files in /opt/airflow/dags every 300 seconds
+[2025-07-24T18:41:38.134-0400] {manager.py:738} INFO - Searching for files in /opt/airflow/dags
+[2025-07-24T18:41:38.373-0400] {manager.py:741} INFO - There are 3 files in /opt/airflow/dags
+[2025-07-24T18:41:39.450-0400] {manager.py:879} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                PID    Runtime      # DAGs    # Errors  Last Runtime    Last Run
+---------------------------------------  -----  ---------  --------  ----------  --------------  -------------------
+/opt/airflow/dags/etl_local_dag.py                                0           0
+/opt/airflow/dags/model_training_dag.py                           0           0
+/opt/airflow/dags/etl_worldbank_dag.py                            1           0  0.91s           2025-07-24T22:41:39
+================================================================================
+[2025-07-24T18:42:54.612-0400] {manager.py:451} INFO - Exiting gracefully upon receiving signal 15
+[2025-07-24T18:42:55.060-0400] {manager.py:469} INFO - Processing files using up to 1 processes at a time 
+[2025-07-24T18:42:55.062-0400] {manager.py:470} INFO - Process each file at most once every 30 seconds
+[2025-07-24T18:42:55.064-0400] {manager.py:471} INFO - Checking for new files in /opt/airflow/dags every 300 seconds
+[2025-07-24T18:42:55.066-0400] {manager.py:738} INFO - Searching for files in /opt/airflow/dags
+[2025-07-24T18:42:55.162-0400] {manager.py:741} INFO - There are 3 files in /opt/airflow/dags
+[2025-07-24T18:42:56.254-0400] {manager.py:879} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                PID    Runtime      # DAGs    # Errors  Last Runtime    Last Run
+---------------------------------------  -----  ---------  --------  ----------  --------------  -------------------
+/opt/airflow/dags/etl_local_dag.py                                0           0
+/opt/airflow/dags/model_training_dag.py                           0           0
+/opt/airflow/dags/etl_worldbank_dag.py                            1           0  1.01s           2025-07-24T22:42:56
+================================================================================
+[2025-07-24T18:50:08.327-0400] {manager.py:451} INFO - Exiting gracefully upon receiving signal 15
+[2025-07-24T18:50:25.847-0400] {manager.py:469} INFO - Processing files using up to 1 processes at a time 
+[2025-07-24T18:50:25.848-0400] {manager.py:470} INFO - Process each file at most once every 30 seconds
+[2025-07-24T18:50:25.851-0400] {manager.py:471} INFO - Checking for new files in /opt/airflow/dags every 300 seconds
+[2025-07-24T18:50:25.854-0400] {manager.py:738} INFO - Searching for files in /opt/airflow/dags
+[2025-07-24T18:50:25.942-0400] {manager.py:741} INFO - There are 3 files in /opt/airflow/dags
+[2025-07-24T18:50:26.570-0400] {manager.py:879} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                                PID    Runtime      # DAGs    # Errors  Last Runtime    Last Run
+---------------------------------------  -----  ---------  --------  ----------  --------------  -------------------
+/opt/airflow/dags/etl_local_dag.py                                0           0
+/opt/airflow/dags/model_training_dag.py                           0           0
+/opt/airflow/dags/etl_worldbank_dag.py                            1           0  0.52s           2025-07-24T22:50:26
+================================================================================
+[2025-07-24T20:12:07.425-0400] {manager.py:451} INFO - Exiting gracefully upon receiving signal 15

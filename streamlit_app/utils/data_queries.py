@@ -1,583 +1,428 @@
 import pandas as pd
-import psycopg2
-from sqlalchemy import create_engine
+import boto3
 import os
 import logging
 from datetime import datetime, timedelta
+from io import StringIO
 
 class DataQueries:
-    """Class to handle all database queries for the Streamlit app"""
+    """Class to handle all data queries from MinIO for the Streamlit app"""
     
     def __init__(self):
-        """Initialize database connection"""
-        self.connection_string = self._get_connection_string()
-        self.engine = create_engine(self.connection_string)
+        """Initialize MinIO S3 client"""
+        self.s3_client = boto3.client(
+            's3',
+            endpoint_url=os.getenv('MINIO_ENDPOINT', 'http://localhost:9000'),
+            aws_access_key_id=os.getenv('MINIO_ACCESS_KEY', 'minioadmin'),
+            aws_secret_access_key=os.getenv('MINIO_SECRET_KEY', 'minioadmin123')
+        )
+        self.bucket_name = 'etl-data'
         
-    def _get_connection_string(self):
-        """Get database connection string from environment variables"""
-        db_config = {
-            'host': os.getenv('POSTGRES_HOST', 'localhost'),
-            'database': os.getenv('POSTGRES_DB', 'etl_database'),
-            'user': os.getenv('POSTGRES_USER', 'etl_user'),
-            'password': os.getenv('POSTGRES_PASSWORD', 'etl_password'),
-            'port': os.getenv('POSTGRES_PORT', '5432')
-        }
-        
-        return f"postgresql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}"
-    
     def get_available_years(self):
-        """Get list of available years in the database"""
-        query = """
-        SELECT DISTINCT year
-        FROM etl_schema.world_bank_gdp
-        WHERE year IS NOT NULL
-        ORDER BY year DESC
-        """
+        """Get list of available years from processed data"""
         try:
-            df = pd.read_sql(query, self.engine)
-            return df['year'].tolist()
+            # Try World Bank data first
+            obj = self.s3_client.get_object(
+                Bucket=self.bucket_name,
+                Key=self._get_latest_file('processed/worldbank_data/')
+            )
+            df = pd.read_csv(obj['Body'])
+            
+            if 'year' in df.columns:
+                return sorted(df['year'].dropna().unique().tolist(), reverse=True)
+            
+            return []
         except Exception as e:
             logging.error(f"Error getting available years: {e}")
             return []
     
     def get_available_countries(self):
-        """Get list of available countries"""
-        query = """
-        SELECT DISTINCT country_name
-        FROM etl_schema.world_bank_gdp
-        WHERE country_name IS NOT NULL
-        ORDER BY country_name
-        """
+        """Get list of available countries from World Bank data"""
         try:
-            df = pd.read_sql(query, self.engine)
-            return df['country_name'].tolist()
+            obj = self.s3_client.get_object(
+                Bucket=self.bucket_name,
+                Key=self._get_latest_file('processed/worldbank_data/')
+            )
+            df = pd.read_csv(obj['Body'])
+            
+            if 'country_name' in df.columns:
+                return sorted(df['country_name'].dropna().unique().tolist())
+            
+            return []
         except Exception as e:
             logging.error(f"Error getting available countries: {e}")
             return []
     
     def get_worldbank_overview(self, years):
-        """Get World Bank data overview statistics"""
-        years_str = ','.join(map(str, years))
-        query = f"""
-        SELECT 
-            COUNT(*) as total_records,
-            COUNT(DISTINCT country_code) as total_countries,
-            AVG(gdp_value) as avg_gdp,
-            MAX(gdp_value) as max_gdp,
-            MIN(gdp_value) as min_gdp
-        FROM etl_schema.world_bank_gdp
-        WHERE year IN ({years_str})
-        AND gdp_value IS NOT NULL
-        """
+        """Get World Bank overview from processed data"""
         try:
-            df = pd.read_sql(query, self.engine)
-            return df.iloc[0].to_dict() if not df.empty else {}
+            obj = self.s3_client.get_object(
+                Bucket=self.bucket_name,
+                Key=self._get_latest_file('processed/worldbank_data/')
+            )
+            df = pd.read_csv(obj['Body'])
+            
+            if years:
+                df = df[df['year'].isin(years)]
+            
+            return {
+                'total_records': len(df),
+                'total_countries': df['country_code'].nunique() if 'country_code' in df.columns else 0,
+                'avg_gdp': df['gdp_value'].mean() if 'gdp_value' in df.columns else 0,
+                'max_gdp': df['gdp_value'].max() if 'gdp_value' in df.columns else 0,
+                'min_gdp': df['gdp_value'].min() if 'gdp_value' in df.columns else 0
+            }
         except Exception as e:
             logging.error(f"Error getting World Bank overview: {e}")
             return {}
     
     def get_local_data_overview(self, years):
-        """Get local data overview statistics"""
-        years_str = ','.join(map(str, years))
-        query = f"""
-        SELECT 
-            COUNT(*) as total_records,
-            COUNT(DISTINCT category) as total_categories,
-            AVG(value_1) as avg_value_1,
-            AVG(value_2) as avg_value_2
-        FROM etl_schema.local_data
-        WHERE year IN ({years_str})
-        """
+        """Get local export data overview"""
         try:
-            df = pd.read_sql(query, self.engine)
-            return df.iloc[0].to_dict() if not df.empty else {}
+            obj = self.s3_client.get_object(
+                Bucket=self.bucket_name,
+                Key=self._get_latest_file('processed/local_data/')
+            )
+            df = pd.read_csv(obj['Body'])
+            
+            if years and 'YEAR' in df.columns:
+                df = df[df['YEAR'].isin(years)]
+            
+            fob_col = 'FOB_CLEAN' if 'FOB_CLEAN' in df.columns else 'US$ FOB'
+            
+            return {
+                'total_records': len(df),
+                'total_countries': df['PAIS_DESTINO_CLEAN'].nunique() if 'PAIS_DESTINO_CLEAN' in df.columns else 0,
+                'total_fob_usd': df[fob_col].sum() if fob_col in df.columns else 0,
+                'avg_fob_usd': df[fob_col].mean() if fob_col in df.columns else 0
+            }
         except Exception as e:
             logging.error(f"Error getting local data overview: {e}")
             return {}
     
     def get_gdp_by_year(self, years):
         """Get GDP distribution by year"""
-        years_str = ','.join(map(str, years))
-        query = f"""
-        SELECT 
-            year,
-            country_name,
-            gdp_value,
-            ranking
-        FROM etl_schema.world_bank_gdp
-        WHERE year IN ({years_str})
-        AND gdp_value IS NOT NULL
-        ORDER BY year, ranking
-        """
         try:
-            return pd.read_sql(query, self.engine)
+            obj = self.s3_client.get_object(
+                Bucket=self.bucket_name,
+                Key=self._get_latest_file('processed/worldbank_data/')
+            )
+            df = pd.read_csv(obj['Body'])
+            
+            if years:
+                df = df[df['year'].isin(years)]
+            
+            required_cols = ['year', 'country_name', 'gdp_value', 'ranking']
+            available_cols = [col for col in required_cols if col in df.columns]
+            
+            return df[available_cols].sort_values(['year', 'ranking'] if 'ranking' in available_cols else ['year'])
         except Exception as e:
             logging.error(f"Error getting GDP by year: {e}")
             return pd.DataFrame()
     
     def get_local_data_trends(self, years):
-        """Get local data trends"""
-        years_str = ','.join(map(str, years))
-        query = f"""
-        SELECT 
-            year,
-            category,
-            AVG(value_1) as avg_value,
-            COUNT(*) as record_count
-        FROM etl_schema.local_data
-        WHERE year IN ({years_str})
-        AND category IS NOT NULL
-        GROUP BY year, category
-        ORDER BY year, category
-        """
+        """Get local export data trends"""
         try:
-            return pd.read_sql(query, self.engine)
+            obj = self.s3_client.get_object(
+                Bucket=self.bucket_name,
+                Key=self._get_latest_file('processed/local_data/')
+            )
+            df = pd.read_csv(obj['Body'])
+            
+            if years and 'YEAR' in df.columns:
+                df = df[df['YEAR'].isin(years)]
+            
+            # Create trends from export data
+            fob_col = 'FOB_CLEAN' if 'FOB_CLEAN' in df.columns else 'US$ FOB'
+            
+            if 'YEAR' in df.columns and fob_col in df.columns:
+                trends = df.groupby('YEAR').agg({
+                    fob_col: ['mean', 'count']
+                }).reset_index()
+                
+                trends.columns = ['year', 'avg_value', 'record_count']
+                trends['category'] = 'exports'
+                
+                return trends
+            
+            return pd.DataFrame()
         except Exception as e:
             logging.error(f"Error getting local data trends: {e}")
             return pd.DataFrame()
     
     def get_recent_updates(self):
-        """Get recent data updates"""
-        query = """
-        SELECT 
-            'World Bank' as data_source,
-            MAX(created_at) as last_update,
-            COUNT(*) as record_count
-        FROM etl_schema.world_bank_gdp
-        WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
-        
-        UNION ALL
-        
-        SELECT 
-            'Local Data' as data_source,
-            MAX(created_at) as last_update,
-            COUNT(*) as record_count
-        FROM etl_schema.local_data
-        WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
-        """
+        """Get recent data updates info"""
         try:
-            return pd.read_sql(query, self.engine)
+            updates = []
+            
+            # Check World Bank data
+            try:
+                response = self.s3_client.list_objects_v2(
+                    Bucket=self.bucket_name,
+                    Prefix='processed/worldbank_data/'
+                )
+                if 'Contents' in response:
+                    latest_wb = max(response['Contents'], key=lambda x: x['LastModified'])
+                    updates.append({
+                        'data_source': 'World Bank',
+                        'last_update': latest_wb['LastModified'],
+                        'record_count': 'Available'
+                    })
+            except:
+                pass
+            
+            # Check local data
+            try:
+                response = self.s3_client.list_objects_v2(
+                    Bucket=self.bucket_name,
+                    Prefix='processed/local_data/'
+                )
+                if 'Contents' in response:
+                    latest_local = max(response['Contents'], key=lambda x: x['LastModified'])
+                    updates.append({
+                        'data_source': 'Local Exports',
+                        'last_update': latest_local['LastModified'],
+                        'record_count': 'Available'
+                    })
+            except:
+                pass
+            
+            return pd.DataFrame(updates)
         except Exception as e:
             logging.error(f"Error getting recent updates: {e}")
             return pd.DataFrame()
     
     def get_gdp_rankings(self, years, countries):
         """Get GDP rankings for selected countries and years"""
-        years_str = ','.join(map(str, years))
-        countries_str = "','".join(countries)
-        query = f"""
-        SELECT 
-            country_code,
-            country_name,
-            year,
-            gdp_value,
-            ranking,
-            gdp_growth_rate
-        FROM etl_schema.world_bank_gdp
-        WHERE year IN ({years_str})
-        AND country_name IN ('{countries_str}')
-        AND gdp_value IS NOT NULL
-        ORDER BY year DESC, ranking ASC
-        """
         try:
-            return pd.read_sql(query, self.engine)
+            obj = self.s3_client.get_object(
+                Bucket=self.bucket_name,
+                Key=self._get_latest_file('processed/worldbank_data/')
+            )
+            df = pd.read_csv(obj['Body'])
+            
+            if years:
+                df = df[df['year'].isin(years)]
+            
+            if countries and 'country_name' in df.columns:
+                df = df[df['country_name'].isin(countries)]
+            
+            return df.sort_values(['year', 'ranking'] if 'ranking' in df.columns else ['year'])
         except Exception as e:
             logging.error(f"Error getting GDP rankings: {e}")
             return pd.DataFrame()
     
     def get_gdp_growth_analysis(self, years, countries):
         """Get GDP growth analysis"""
-        years_str = ','.join(map(str, years))
-        countries_str = "','".join(countries)
-        query = f"""
-        SELECT 
-            country_name,
-            year,
-            gdp_growth_rate,
-            gdp_value,
-            ranking
-        FROM etl_schema.world_bank_gdp
-        WHERE year IN ({years_str})
-        AND country_name IN ('{countries_str}')
-        AND gdp_growth_rate IS NOT NULL
-        ORDER BY country_name, year
-        """
         try:
-            return pd.read_sql(query, self.engine)
+            obj = self.s3_client.get_object(
+                Bucket=self.bucket_name,
+                Key=self._get_latest_file('processed/worldbank_data/')
+            )
+            df = pd.read_csv(obj['Body'])
+            
+            if years:
+                df = df[df['year'].isin(years)]
+            
+            if countries and 'country_name' in df.columns:
+                df = df[df['country_name'].isin(countries)]
+            
+            # Filter for valid growth rates
+            if 'gdp_growth_rate' in df.columns:
+                df = df[df['gdp_growth_rate'].notna()]
+            
+            return df.sort_values(['country_name', 'year'])
         except Exception as e:
             logging.error(f"Error getting GDP growth analysis: {e}")
             return pd.DataFrame()
     
     def get_regional_performance(self, years):
-        """Get regional performance data"""
-        years_str = ','.join(map(str, years))
-        query = f"""
-        WITH regional_data AS (
-            SELECT 
-                CASE 
-                    WHEN country_code IN ('USA', 'CAN', 'MEX') THEN 'North America'
-                    WHEN country_code IN ('BRA', 'ARG', 'CHL', 'COL', 'PER') THEN 'South America'
-                    WHEN country_code IN ('CHN', 'JPN', 'IND', 'KOR', 'IDN') THEN 'Asia'
-                    WHEN country_code IN ('DEU', 'FRA', 'GBR', 'ITA', 'ESP') THEN 'Europe'
-                    WHEN country_code IN ('NGA', 'ZAF', 'EGY', 'KEN', 'ETH') THEN 'Africa'
-                    ELSE 'Other'
-                END as region,
-                SUM(gdp_value) as total_gdp,
-                AVG(gdp_growth_rate) as avg_growth,
-                COUNT(*) as country_count
-            FROM etl_schema.world_bank_gdp
-            WHERE year IN ({years_str})
-            AND gdp_value IS NOT NULL
-            GROUP BY region
-        )
-        SELECT * FROM regional_data
-        WHERE region != 'Other'
-        ORDER BY total_gdp DESC
-        """
+        """Get regional performance from World Bank data"""
         try:
-            return pd.read_sql(query, self.engine)
+            obj = self.s3_client.get_object(
+                Bucket=self.bucket_name,
+                Key=self._get_latest_file('processed/worldbank_data/')
+            )
+            df = pd.read_csv(obj['Body'])
+            
+            if years:
+                df = df[df['year'].isin(years)]
+            
+            # Group by region if available
+            if 'region' in df.columns and 'gdp_value' in df.columns:
+                regional_data = df.groupby('region').agg({
+                    'gdp_value': 'sum',
+                    'gdp_growth_rate': 'mean',
+                    'country_code': 'count'
+                }).reset_index()
+                
+                regional_data.columns = ['region', 'total_gdp', 'avg_growth', 'country_count']
+                return regional_data.sort_values('total_gdp', ascending=False)
+            
+            return pd.DataFrame()
         except Exception as e:
             logging.error(f"Error getting regional performance: {e}")
             return pd.DataFrame()
     
-    def get_local_data_summary(self, years):
-        """Get local data summary"""
-        years_str = ','.join(map(str, years))
-        query = f"""
-        SELECT 
-            category,
-            year,
-            COUNT(*) as total_records,
-            AVG(value_1) as avg_value_1,
-            AVG(value_2) as avg_value_2,
-            SUM(value_1 + value_2) as total_value
-        FROM etl_schema.local_data
-        WHERE year IN ({years_str})
-        AND category IS NOT NULL
-        GROUP BY category, year
-        ORDER BY year, category
-        """
+    def get_export_data_summary(self, years):
+        """Get export data summary"""
         try:
-            return pd.read_sql(query, self.engine)
+            obj = self.s3_client.get_object(
+                Bucket=self.bucket_name,
+                Key=self._get_latest_file('processed/local_data/')
+            )
+            df = pd.read_csv(obj['Body'])
+            
+            if years and 'YEAR' in df.columns:
+                df = df[df['YEAR'].isin(years)]
+            
+            fob_col = 'FOB_CLEAN' if 'FOB_CLEAN' in df.columns else 'US$ FOB'
+            
+            summary = {
+                'total_records': len(df),
+                'total_fob_usd': df[fob_col].sum() if fob_col in df.columns else 0,
+                'unique_countries': df['PAIS_DESTINO_CLEAN'].nunique() if 'PAIS_DESTINO_CLEAN' in df.columns else 0,
+                'unique_products': df['PRODUCTO_CLEAN'].nunique() if 'PRODUCTO_CLEAN' in df.columns else 0,
+                'unique_regions': df['REGION_ORIGEN_CLEAN'].nunique() if 'REGION_ORIGEN_CLEAN' in df.columns else 0
+            }
+            
+            return summary
         except Exception as e:
-            logging.error(f"Error getting local data summary: {e}")
+            logging.error(f"Error getting export data summary: {e}")
+            return {}
+    
+    def get_exports_by_country(self, years):
+        """Get exports aggregated by destination country"""
+        try:
+            # Try to get monthly aggregations first
+            try:
+                obj = self.s3_client.get_object(
+                    Bucket=self.bucket_name,
+                    Key=self._get_latest_file('processed/local_data/', 'monthly_exports_by_country')
+                )
+                df = pd.read_csv(obj['Body'])
+                
+                if years and 'YEAR' in df.columns:
+                    df = df[df['YEAR'].isin(years)]
+                
+                return df.groupby('PAIS_DESTINO_CLEAN').agg({
+                    'TOTAL_FOB_USD': 'sum',
+                    'EXPORT_COUNT': 'sum'
+                }).reset_index().sort_values('TOTAL_FOB_USD', ascending=False)
+            except:
+                # Fallback to main processed data
+                obj = self.s3_client.get_object(
+                    Bucket=self.bucket_name,
+                    Key=self._get_latest_file('processed/local_data/')
+                )
+                df = pd.read_csv(obj['Body'])
+                
+                if years and 'YEAR' in df.columns:
+                    df = df[df['YEAR'].isin(years)]
+                
+                fob_col = 'FOB_CLEAN' if 'FOB_CLEAN' in df.columns else 'US$ FOB'
+                country_col = 'PAIS_DESTINO_CLEAN' if 'PAIS_DESTINO_CLEAN' in df.columns else 'PAIS DE DESTINO'
+                
+                return df.groupby(country_col).agg({
+                    fob_col: ['sum', 'count']
+                }).reset_index()
+        except Exception as e:
+            logging.error(f"Error getting exports by country: {e}")
             return pd.DataFrame()
     
-    def get_local_value_trends(self, years):
-        """Get local data value trends"""
-        years_str = ','.join(map(str, years))
-        query = f"""
-        SELECT 
-            year,
-            AVG(value_1) as avg_value_1,
-            AVG(value_2) as avg_value_2,
-            COUNT(*) as record_count
-        FROM etl_schema.local_data
-        WHERE year IN ({years_str})
-        GROUP BY year
-        ORDER BY year
-        """
+    def _get_latest_file(self, prefix, filename_pattern=None):
+        """Get the latest file from a MinIO prefix"""
         try:
-            return pd.read_sql(query, self.engine)
+            response = self.s3_client.list_objects_v2(
+                Bucket=self.bucket_name,
+                Prefix=prefix
+            )
+            
+            if 'Contents' not in response:
+                raise ValueError(f"No files found in {prefix}")
+            
+            # Filter by pattern if provided
+            files = response['Contents']
+            if filename_pattern:
+                files = [f for f in files if filename_pattern in f['Key']]
+            
+            # Filter only CSV files
+            csv_files = [f for f in files if f['Key'].endswith('.csv')]
+            
+            if not csv_files:
+                raise ValueError(f"No CSV files found in {prefix}")
+            
+            # Return the most recent file
+            latest_file = max(csv_files, key=lambda x: x['LastModified'])
+            return latest_file['Key']
+            
         except Exception as e:
-            logging.error(f"Error getting local value trends: {e}")
-            return pd.DataFrame()
-    
-    def get_category_performance(self, years):
-        """Get category performance"""
-        years_str = ','.join(map(str, years))
-        query = f"""
-        SELECT 
-            category,
-            COUNT(*) as record_count,
-            SUM(value_1 + value_2) as total_value,
-            AVG(value_1) as avg_value_1,
-            AVG(value_2) as avg_value_2
-        FROM etl_schema.local_data
-        WHERE year IN ({years_str})
-        AND category IS NOT NULL
-        GROUP BY category
-        ORDER BY total_value DESC
-        """
-        try:
-            return pd.read_sql(query, self.engine)
-        except Exception as e:
-            logging.error(f"Error getting category performance: {e}")
-            return pd.DataFrame()
-    
-    def get_monthly_patterns(self, years):
-        """Get monthly patterns in local data"""
-        years_str = ','.join(map(str, years))
-        query = f"""
-        SELECT 
-            category,
-            month,
-            AVG(value_1 + value_2) as avg_value,
-            COUNT(*) as record_count
-        FROM etl_schema.local_data
-        WHERE year IN ({years_str})
-        AND month IS NOT NULL
-        AND category IS NOT NULL
-        GROUP BY category, month
-        ORDER BY category, month
-        """
-        try:
-            return pd.read_sql(query, self.engine)
-        except Exception as e:
-            logging.error(f"Error getting monthly patterns: {e}")
-            return pd.DataFrame()
-    
-    def get_economic_correlations(self, years, countries):
-        """Get economic correlations between World Bank and local data"""
-        years_str = ','.join(map(str, years))
-        countries_str = "','".join(countries)
-        query = f"""
-        WITH local_agg AS (
-            SELECT 
-                year,
-                AVG(value_1 + value_2) as local_avg_value,
-                COUNT(*) as local_record_count,
-                STDDEV(value_1 + value_2) as local_std
-            FROM etl_schema.local_data
-            WHERE year IN ({years_str})
-            GROUP BY year
-        ),
-        wb_data AS (
-            SELECT 
-                country_name,
-                country_code,
-                year,
-                gdp_value,
-                gdp_growth_rate,
-                ranking,
-                CASE 
-                    WHEN country_code IN ('USA', 'CAN', 'MEX') THEN 'North America'
-                    WHEN country_code IN ('BRA', 'ARG', 'CHL', 'COL', 'PER') THEN 'South America'
-                    WHEN country_code IN ('CHN', 'JPN', 'IND', 'KOR', 'IDN') THEN 'Asia'
-                    WHEN country_code IN ('DEU', 'FRA', 'GBR', 'ITA', 'ESP') THEN 'Europe'
-                    ELSE 'Other'
-                END as region
-            FROM etl_schema.world_bank_gdp
-            WHERE year IN ({years_str})
-            AND country_name IN ('{countries_str}')
-            AND gdp_value IS NOT NULL
-        )
-        SELECT 
-            wb.*,
-            la.local_avg_value,
-            la.local_record_count,
-            (100 - wb.ranking) as local_performance_score
-        FROM wb_data wb
-        LEFT JOIN local_agg la ON wb.year = la.year
-        WHERE la.local_avg_value IS NOT NULL
-        ORDER BY wb.year, wb.ranking
-        """
-        try:
-            return pd.read_sql(query, self.engine)
-        except Exception as e:
-            logging.error(f"Error getting economic correlations: {e}")
-            return pd.DataFrame()
-    
-    def get_economic_indicators(self, years, countries):
-        """Get economic indicators for dashboard"""
-        years_str = ','.join(map(str, years))
-        countries_str = "','".join(countries)
-        query = f"""
-        WITH country_stats AS (
-            SELECT 
-                country_name,
-                country_code,
-                year,
-                gdp_value,
-                gdp_growth_rate,
-                ranking,
-                STDDEV(gdp_growth_rate) OVER (
-                    PARTITION BY country_code 
-                    ORDER BY year 
-                    ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
-                ) as gdp_volatility,
-                AVG(gdp_growth_rate) OVER (
-                    PARTITION BY country_code 
-                    ORDER BY year 
-                    ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
-                ) as growth_3yr_avg
-            FROM etl_schema.world_bank_gdp
-            WHERE year IN ({years_str})
-            AND country_name IN ('{countries_str}')
-            AND gdp_value IS NOT NULL
-        )
-        SELECT 
-            *,
-            CASE 
-                WHEN growth_3yr_avg > 3 THEN 'High Growth'
-                WHEN growth_3yr_avg > 0 THEN 'Positive Growth'
-                WHEN growth_3yr_avg > -2 THEN 'Stable'
-                ELSE 'Declining'
-            END as growth_category
-        FROM country_stats
-        ORDER BY country_name, year
-        """
-        try:
-            return pd.read_sql(query, self.engine)
-        except Exception as e:
-            logging.error(f"Error getting economic indicators: {e}")
-            return pd.DataFrame()
+            logging.error(f"Error getting latest file from {prefix}: {e}")
+            raise
     
     def get_data_quality_metrics(self):
-        """Get data quality metrics"""
-        query = """
-        WITH wb_quality AS (
-            SELECT 
-                COUNT(*) as total_records,
-                COUNT(CASE WHEN gdp_value IS NOT NULL THEN 1 END) as complete_gdp,
-                COUNT(CASE WHEN country_name IS NOT NULL THEN 1 END) as complete_country,
-                MAX(created_at) as last_update
-            FROM etl_schema.world_bank_gdp
-        ),
-        local_quality AS (
-            SELECT 
-                COUNT(*) as total_records,
-                COUNT(CASE WHEN value_1 IS NOT NULL AND value_2 IS NOT NULL THEN 1 END) as complete_values,
-                COUNT(CASE WHEN category IS NOT NULL THEN 1 END) as complete_category,
-                MAX(created_at) as last_update
-            FROM etl_schema.local_data
-        ),
-        duplicates AS (
-            SELECT COUNT(*) as duplicate_count
-            FROM (
-                SELECT country_code, year, COUNT(*)
-                FROM etl_schema.world_bank_gdp
-                GROUP BY country_code, year
-                HAVING COUNT(*) > 1
-            ) dups
-        )
-        SELECT 
-            wb.total_records as wb_total,
-            (wb.complete_gdp::float / wb.total_records * 100) as wb_completeness,
-            local.total_records as local_total,
-            (local.complete_values::float / local.total_records * 100) as local_completeness,
-            dups.duplicate_count as duplicates,
-            EXTRACT(DAYS FROM CURRENT_TIMESTAMP - GREATEST(wb.last_update, local.last_update)) as data_age_days
-        FROM wb_quality wb, local_quality local, duplicates dups
-        """
+        """Get basic data quality metrics from available files"""
         try:
-            df = pd.read_sql(query, self.engine)
-            return df.iloc[0].to_dict() if not df.empty else {}
+            quality_metrics = {
+                'wb_completeness': 0,
+                'local_completeness': 0,
+                'duplicates': 0,
+                'data_age_days': 0
+            }
+            
+            # Check World Bank data quality
+            try:
+                obj = self.s3_client.get_object(
+                    Bucket=self.bucket_name,
+                    Key=self._get_latest_file('processed/worldbank_data/')
+                )
+                wb_df = pd.read_csv(obj['Body'])
+                
+                if 'gdp_value' in wb_df.columns:
+                    quality_metrics['wb_completeness'] = (wb_df['gdp_value'].notna().sum() / len(wb_df)) * 100
+            except:
+                pass
+            
+            # Check local data quality
+            try:
+                obj = self.s3_client.get_object(
+                    Bucket=self.bucket_name,
+                    Key=self._get_latest_file('processed/local_data/')
+                )
+                local_df = pd.read_csv(obj['Body'])
+                
+                fob_col = 'FOB_CLEAN' if 'FOB_CLEAN' in local_df.columns else 'US$ FOB'
+                if fob_col in local_df.columns:
+                    quality_metrics['local_completeness'] = (local_df[fob_col].notna().sum() / len(local_df)) * 100
+            except:
+                pass
+            
+            return quality_metrics
         except Exception as e:
             logging.error(f"Error getting data quality metrics: {e}")
             return {}
     
     def get_data_quality_issues(self):
-        """Get specific data quality issues"""
-        query = """
-        SELECT 'Missing GDP Values' as issue_type, COUNT(*) as count
-        FROM etl_schema.world_bank_gdp
-        WHERE gdp_value IS NULL
-        
-        UNION ALL
-        
-        SELECT 'Missing Country Names' as issue_type, COUNT(*) as count
-        FROM etl_schema.world_bank_gdp
-        WHERE country_name IS NULL
-        
-        UNION ALL
-        
-        SELECT 'Negative GDP Values' as issue_type, COUNT(*) as count
-        FROM etl_schema.world_bank_gdp
-        WHERE gdp_value < 0
-        
-        UNION ALL
-        
-        SELECT 'Missing Local Data Values' as issue_type, COUNT(*) as count
-        FROM etl_schema.local_data
-        WHERE value_1 IS NULL OR value_2 IS NULL
-        
-        UNION ALL
-        
-        SELECT 'Missing Categories' as issue_type, COUNT(*) as count
-        FROM etl_schema.local_data
-        WHERE category IS NULL
-        
-        ORDER BY count DESC
-        """
-        try:
-            df = pd.read_sql(query, self.engine)
-            return df[df['count'] > 0]  # Only return issues that exist
-        except Exception as e:
-            logging.error(f"Error getting data quality issues: {e}")
-            return pd.DataFrame()
+        """Get data quality issues"""
+        # Return empty DataFrame as we don't have detailed quality checks in MinIO-only setup
+        return pd.DataFrame()
     
     def get_data_lineage(self):
         """Get data lineage information"""
-        try:
-            lineage_info = {
-                "world_bank_data": {
+        return {
+            "data_sources": {
+                "local_exports": {
+                    "source": "Chilean Export CSV Files",
+                    "processing": "Airflow -> Spark -> MinIO",
+                    "frequency": "Daily"
+                },
+                "world_bank": {
                     "source": "World Bank API",
-                    "extraction_frequency": "Weekly",
-                    "last_processed": self._get_last_processing_time('world_bank_gdp'),
-                    "processing_steps": [
-                        "API Extraction",
-                        "Data Validation",
-                        "Ranking Calculation",
-                        "Growth Rate Calculation",
-                        "Database Load"
-                    ]
-                },
-                "local_data": {
-                    "source": "Local CSV Files",
-                    "extraction_frequency": "Daily",
-                    "last_processed": self._get_last_processing_time('local_data'),
-                    "processing_steps": [
-                        "CSV File Reading",
-                        "Spark Transformation",
-                        "Data Cleaning",
-                        "Aggregation",
-                        "Database Load"
-                    ]
-                },
-                "ml_models": {
-                    "source": "Combined Dataset",
-                    "training_frequency": "Monthly",
-                    "last_trained": self._get_last_model_training(),
-                    "pipeline_steps": [
-                        "Feature Engineering",
-                        "Data Preprocessing",
-                        "Model Training",
-                        "Model Validation",
-                        "Model Storage"
-                    ]
+                    "processing": "Airflow -> MinIO",
+                    "frequency": "Weekly"
                 }
-            }
-            return lineage_info
-        except Exception as e:
-            logging.error(f"Error getting data lineage: {e}")
-            return {}
-    
-    def _get_last_processing_time(self, table_name):
-        """Get last processing time for a table"""
-        query = f"""
-        SELECT MAX(created_at) as last_processed
-        FROM etl_schema.{table_name}
-        """
-        try:
-            df = pd.read_sql(query, self.engine)
-            last_processed = df.iloc[0]['last_processed']
-            return last_processed.isoformat() if last_processed else None
-        except Exception as e:
-            logging.error(f"Error getting last processing time for {table_name}: {e}")
-            return None
-    
-    def _get_last_model_training(self):
-        """Get last model training time"""
-        query = """
-        SELECT MAX(training_date) as last_training
-        FROM etl_schema.model_metadata
-        WHERE is_active = true
-        """
-        try:
-            df = pd.read_sql(query, self.engine)
-            last_training = df.iloc[0]['last_training']
-            return last_training.isoformat() if last_training else None
-        except Exception as e:
-            logging.error(f"Error getting last model training time: {e}")
-            return None
+            },
+            "storage": "MinIO Object Storage",
+            "processing_engine": "Apache Spark",
+            "orchestrator": "Apache Airflow"
+        }

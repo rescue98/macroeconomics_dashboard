@@ -15,7 +15,7 @@ ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
 USER airflow
 
-# Install only essential packages to avoid conflicts
+# Install packages including ML libraries
 RUN pip install --no-cache-dir \
     pandas==1.5.3 \
     numpy==1.24.3 \
@@ -23,7 +23,10 @@ RUN pip install --no-cache-dir \
     minio==7.1.16 \
     requests==2.31.0 \
     sqlalchemy==1.4.39 \
-    pendulum==2.1.2
+    pendulum==2.1.2 \
+    scikit-learn==1.3.0 \
+    joblib==1.3.2 \
+    xgboost==1.7.6
 
 # Copy ETL application code only
 COPY --chown=airflow:root ./dags /opt/airflow/dags
