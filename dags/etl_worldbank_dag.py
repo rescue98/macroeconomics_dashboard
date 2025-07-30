@@ -6,7 +6,7 @@ import pandas as pd
 import requests
 import logging
 from minio import Minio
-from io import StringIO
+from io import StringIO, BytesIO
 import numpy as np
 import time
 
@@ -127,12 +127,13 @@ def upload_to_minio(**context):
     
     object_name = f"raw/worldbank_data/gdp_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     
+    
     minio_client.put_object(
-        bucket_name,
-        object_name,
-        data=StringIO(csv_string),
-        length=len(csv_bytes),
-        content_type='text/csv'
+    bucket_name,
+    object_name,
+    data=BytesIO(csv_string.encode('utf-8')),  
+    length=len(csv_string.encode('utf-8')),
+    content_type='text/csv'
     )
     
     logging.info(f"Uploaded World Bank GDP data to MinIO: {object_name}")
@@ -249,7 +250,7 @@ def transform_worldbank_data(**context):
     minio_client.put_object(
         bucket_name,
         processed_object_name,
-        data=StringIO(processed_csv),
+        data=BytesIO(processed_csv.encode('utf-8')),
         length=len(processed_csv.encode('utf-8')),
         content_type='text/csv'
     )

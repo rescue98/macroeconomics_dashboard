@@ -88,7 +88,7 @@ def transform_export_data(df):
             column_mappings[col_clean] = 'DIA'
         elif col_upper in ['MES', 'MONTH']:
             column_mappings[col_clean] = 'MES'
-        elif col_upper in ['AÑO', 'ANO', 'YEAR', 'ANIO']:
+        elif col_upper in ['AÑO', 'ANO', 'YEAR', 'ANIO', "AÃ'O"]:
             column_mappings[col_clean] = 'YEAR'
         elif 'SOURCE_FILE' in col_upper:
             column_mappings[col_clean] = 'SOURCE_FILE'

@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS etl_schema.world_bank_gdp (
 
 CREATE TABLE IF NOT EXISTS etl_schema.export_analytics (
     id SERIAL PRIMARY KEY,
-    analysis_type VARCHAR(50), -- 'monthly_country', 'regional_performance', 'product_performance'
+    analysis_type VARCHAR(50), 
     year INTEGER,
     month INTEGER,
     region VARCHAR(100),
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS etl_schema.model_metadata (
     id SERIAL PRIMARY KEY,
     model_name VARCHAR(100),
     model_version VARCHAR(50),
-    model_type VARCHAR(50), -- 'exports_forecasting', 'gdp_analysis'
+    model_type VARCHAR(50), 
     training_date TIMESTAMP,
     accuracy_score DECIMAL(6,4),
     feature_names TEXT,

@@ -46,12 +46,10 @@ def check_csv_files():
     
     logging.info(f"Found CSV files: {csv_files}")
     
-    # Validate that files have export data structure
     valid_files = []
     for file in csv_files:
         file_path = os.path.join(data_dir, file)
         try:
-            # Try multiple encodings for Chilean CSV files
             df_sample = None
             encodings = ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
             
@@ -67,18 +65,16 @@ def check_csv_files():
                 logging.error(f"⚠ {file} - Could not read with any encoding")
                 continue
             
-            # Check for key export columns - more flexible matching
             file_columns = [col.strip().upper() for col in df_sample.columns]
             
-            # Look for key Chilean export indicators
             has_fob = any('FOB' in col and ('US$' in col or 'USD' in col or 'DOLAR' in col) for col in file_columns)
             has_country = any('PAIS' in col and 'DESTINO' in col for col in file_columns)
             has_product = any('PRODUCTO' in col for col in file_columns)
             
-            if has_fob and has_country:  # At least FOB and destination country
+            if has_fob and has_country: 
                 valid_files.append(file)
                 logging.info(f"✓ {file} - Valid Chilean export data file")
-                logging.info(f"  Columns found: {', '.join(file_columns[:10])}...")  # Show first 10 columns
+                logging.info(f"  Columns found: {', '.join(file_columns[:10])}...")  
             else:
                 logging.warning(f"⚠ {file} - Doesn't match expected export data structure")
                 logging.warning(f"  Has FOB: {has_fob}, Has Country: {has_country}, Has Product: {has_product}")
@@ -139,7 +135,7 @@ def extract_and_upload_to_minio():
             minio_client.put_object(
                 bucket_name,
                 object_name,
-                data=BytesIO(csv_bytes),  # ← ARREGLADO
+                data=BytesIO(csv_bytes),  
                 length=len(csv_bytes),
                 content_type='text/csv'
         )
@@ -162,7 +158,6 @@ def trigger_spark_transformation():
     import docker
     
     try:
-        # Use docker client to execute spark-submit in the spark-master container
         docker_cmd = [
             "docker", "exec", "spark_master",
             "/opt/bitnami/spark/bin/spark-submit",
@@ -210,7 +205,6 @@ def trigger_pandas_transformation():
     bucket_name = 'etl-data'
     
     try:
-        # List all CSV files in raw/local_data/
         objects = minio_client.list_objects(bucket_name, prefix='raw/local_data/', recursive=True)
         
         all_dataframes = []
@@ -219,19 +213,37 @@ def trigger_pandas_transformation():
             if obj.object_name.endswith('.csv'):
                 logging.info(f"Processing {obj.object_name}")
                 
-                # Read CSV from MinIO
-                response = minio_client.get_object(bucket_name, obj.object_name)
-                df = pd.read_csv(response)
                 
-                # Basic transformations
+                response = minio_client.get_object(bucket_name, obj.object_name)
+                df = pd.read_csv(response, low_memory=False)
+                
                 df.columns = [col.strip().upper() for col in df.columns]
                 
-                # Clean FOB values
-                if 'US$ FOB' in df.columns:
-                    df['US$ FOB'] = pd.to_numeric(df['US$ FOB'], errors='coerce')
-                    df = df[df['US$ FOB'] > 0]  # Filter valid FOB values
                 
-                # Add processing metadata
+                column_mappings = {}
+                for col in df.columns:
+                    col_clean = col.strip().upper()
+                    if col_clean == "AÃ'O":
+                        column_mappings[col_clean] = 'YEAR'
+                    elif col_clean == 'US$ FOB':
+                        column_mappings[col_clean] = 'US_FOB'
+                    elif col_clean == 'PAIS DE DESTINO':
+                        column_mappings[col_clean] = 'PAIS_DESTINO'
+                
+              
+                df = df.rename(columns=column_mappings)
+                
+                logging.info(f"Columns after mapping: {df.columns.tolist()}")
+                
+                
+                if 'US_FOB' in df.columns:
+                    df['US_FOB'] = pd.to_numeric(df['US_FOB'], errors='coerce')
+                    df = df[df['US_FOB'] > 0]  
+                elif 'US$ FOB' in df.columns:
+                    df['US$ FOB'] = pd.to_numeric(df['US$ FOB'], errors='coerce')
+                    df = df[df['US$ FOB'] > 0]
+                
+           
                 df['PROCESSED_AT'] = datetime.now()
                 df['PROCESSING_METHOD'] = 'PANDAS_FALLBACK'
                 
@@ -239,11 +251,9 @@ def trigger_pandas_transformation():
                 logging.info(f"Processed {len(df)} records from {obj.object_name}")
         
         if all_dataframes:
-            # Combine all DataFrames
             combined_df = pd.concat(all_dataframes, ignore_index=True)
             logging.info(f"Combined {len(combined_df)} total records")
             
-            # Upload processed data back to MinIO
             csv_string = combined_df.to_csv(index=False)
             processed_object_name = f"processed/local_data/processed_export_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
             
@@ -269,7 +279,6 @@ def trigger_pandas_transformation():
 
 def load_to_postgres():
     """Load processed export data to PostgreSQL"""
-    # MinIO connection
     minio_client = Minio(
         'minio:9000',
         access_key='minioadmin',
