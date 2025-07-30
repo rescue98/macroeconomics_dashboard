@@ -49,8 +49,6 @@ def read_export_data(spark):
 def transform_export_data(df):
     """Apply transformations to Chilean export data"""
     print("Starting Chilean export data transformations...")
-    
-    # 1. Handle column name variations (the DAG standardizes to uppercase)
     print(f"Original columns: {df.columns}")
     column_mappings = {}
     
@@ -95,17 +93,13 @@ def transform_export_data(df):
         elif 'EXTRACTION_DATE' in col_upper:
             column_mappings[col_clean] = 'EXTRACTION_DATE'
     
-    # Apply column mappings
     for old_col, new_col in column_mappings.items():
         df = df.withColumnRenamed(old_col, new_col)
     
     print(f"Applied {len(column_mappings)} column mappings")
     print(f"Columns after mapping: {df.columns}")
     
-    # 2. Data cleaning and validation
     print("Cleaning and validating export data...")
-    
-    # Clean FOB values (handle different formats)
     if 'US$ FOB' in df.columns:
         df = df.withColumn("FOB_CLEAN", 
                           when(col("US$ FOB").isNull(), lit(0))
@@ -115,10 +109,8 @@ def transform_export_data(df):
                                   "[^0-9.-]", ""
                               ).cast("double")
                           ))
-        # Filter out negative or zero FOB values for valid records
         df = df.filter(col("FOB_CLEAN") > 0)
     
-    # Clean weight values
     if 'PESO BRUTO' in df.columns:
         df = df.withColumn("PESO_BRUTO_CLEAN", 
                           when(col("PESO BRUTO").isNull(), lit(0))
@@ -126,8 +118,6 @@ def transform_export_data(df):
                               regexp_replace(col("PESO BRUTO").cast("string"), "[^0-9.]", "")
                               .cast("double")
                           ))
-    
-    # Clean quantity values
     if 'CANTIDAD' in df.columns:
         df = df.withColumn("CANTIDAD_CLEAN", 
                           when(col("CANTIDAD").isNull(), lit(0))
@@ -135,8 +125,7 @@ def transform_export_data(df):
                               regexp_replace(col("CANTIDAD").cast("string"), "[^0-9.]", "")
                               .cast("double")
                           ))
-    
-    # 3. Create date fields if date components exist
+
     print("Creating date fields...")
     if all(col_name in df.columns for col_name in ['DIA', 'MES', 'YEAR']):
         df = df.withColumn("EXPORT_DATE", 
@@ -153,7 +142,6 @@ def transform_export_data(df):
                                           lit("01")
                                          ), "yyyy-MM-dd"))
     
-    # 4. Clean and standardize text fields
     print("Standardizing text fields...")
     if 'PAIS DE DESTINO' in df.columns:
         df = df.withColumn("PAIS_DESTINO_CLEAN", 
@@ -167,7 +155,6 @@ def transform_export_data(df):
         df = df.withColumn("REGION_ORIGEN_CLEAN", 
                           trim(upper(col("REGION DE ORIGEN"))))
     
-    # 5. Calculate derived metrics
     print("Calculating derived metrics...")
     if 'FOB_CLEAN' in df.columns and 'PESO_BRUTO_CLEAN' in df.columns:
         df = df.withColumn("FOB_PER_KG", 
@@ -180,16 +167,12 @@ def transform_export_data(df):
                           when((col("CANTIDAD_CLEAN") > 0) & (col("FOB_CLEAN") > 0), 
                                col("FOB_CLEAN") / col("CANTIDAD_CLEAN"))
                           .otherwise(lit(None)))
-    
-    # 6. Categorize export values
     if 'FOB_CLEAN' in df.columns:
         df = df.withColumn("EXPORT_SIZE_CATEGORY",
                           when(col("FOB_CLEAN") >= 1000000, "Large (>$1M)")
                           .when(col("FOB_CLEAN") >= 100000, "Medium ($100K-$1M)")
                           .when(col("FOB_CLEAN") >= 10000, "Small ($10K-$100K)")
                           .otherwise("Micro (<$10K)"))
-    
-    # 7. Regional analysis for Chile
     if 'REGION_ORIGEN_CLEAN' in df.columns:
         df = df.withColumn("REGION_GROUP",
                           when(col("REGION_ORIGEN_CLEAN").contains("METROPOLITANA"), "Central")
@@ -209,7 +192,6 @@ def transform_export_data(df):
                           .when(col("REGION_ORIGEN_CLEAN").contains("ARICA"), "Far North")
                           .otherwise("Other"))
     
-    # 8. Add processing metadata
     df = df.withColumn("PROCESSED_AT", current_timestamp()) \
            .withColumn("PROCESSING_DATE", current_date())
     
@@ -317,8 +299,6 @@ def main():
 
         monthly_by_country, regional_performance, product_performance = create_export_aggregations(df_transformed)
         write_to_minio(df_transformed, "processed_export_data")
-        
-        # Write aggregations (only if they have data)
         if monthly_by_country.count() > 0:
             write_to_minio(monthly_by_country, "monthly_exports_by_country")
         

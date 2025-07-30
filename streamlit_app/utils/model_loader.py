@@ -17,7 +17,6 @@ class ModelLoader:
         self.minio_client = self._init_minio_client()
         self.bucket_name = 'etl-data'
         
-        # Cached model components
         self._model = None
         self._scaler = None
         self._label_encoders = None
@@ -40,7 +39,6 @@ class ModelLoader:
     def get_active_model_info(self):
         """Get information about the active model from MinIO"""
         try:
-            # Look for model metadata files
             response = self.minio_client.list_objects(
                 self.bucket_name, 
                 prefix='models/', 
@@ -53,7 +51,6 @@ class ModelLoader:
                 logging.warning("No model metadata found")
                 return None
             
-            # Get the latest metadata file
             latest_metadata = max(metadata_files)
             
             metadata_obj = self.minio_client.get_object(self.bucket_name, latest_metadata)
@@ -69,7 +66,6 @@ class ModelLoader:
     def get_feature_importance(self):
         """Get feature importance from MinIO"""
         try:
-            # Look for feature importance files
             response = self.minio_client.list_objects(
                 self.bucket_name, 
                 prefix='models/', 
@@ -81,7 +77,7 @@ class ModelLoader:
             if not importance_files:
                 return None
             
-            # Get the latest importance file
+  
             latest_importance = max(importance_files)
             
             importance_obj = self.minio_client.get_object(self.bucket_name, latest_importance)
@@ -96,16 +92,13 @@ class ModelLoader:
     def generate_predictions(self, countries, years):
         """Generate mock predictions for demo purposes"""
         try:
-            # This is a simplified version that returns mock predictions
-            # In a real implementation, this would load the actual model and generate predictions
             
             predictions_data = []
             
-            for country in countries[:5]:  # Limit to 5 countries for demo
+            for country in countries[:5]: 
                 for year in years:
-                    # Generate mock prediction data
-                    actual_gdp = np.random.uniform(100, 2000)  # Mock actual GDP
-                    predicted_gdp = actual_gdp * np.random.uniform(0.85, 1.15)  # Mock prediction with some error
+                    actual_gdp = np.random.uniform(100, 2000)  
+                    predicted_gdp = actual_gdp * np.random.uniform(0.85, 1.15)  
                     
                     predictions_data.append({
                         'country_name': country,
@@ -116,7 +109,6 @@ class ModelLoader:
             
             predictions_df = pd.DataFrame(predictions_data)
             
-            # Calculate error metrics
             predictions_df['absolute_error'] = abs(predictions_df['actual_gdp'] - predictions_df['predicted_gdp'])
             predictions_df['percentage_error'] = (predictions_df['absolute_error'] / predictions_df['actual_gdp']) * 100
             
@@ -134,7 +126,6 @@ class ModelLoader:
         if model_info and 'performance_metrics' in model_info:
             return model_info['performance_metrics']
         else:
-            # Return mock metrics if no model available
             return {
                 'r2_score': 0.85,
                 'rmse': 45.2,
@@ -156,10 +147,9 @@ class ModelLoader:
             'predictions_within_20_percent': len(predictions_df[predictions_df['percentage_error'] <= 20])
         }
         
-        # Check if predictions are reasonable
         is_valid = (
-            validation_results['mean_percentage_error'] < 50 and  # Average error less than 50%
-            validation_results['predictions_within_20_percent'] > len(predictions_df) * 0.5  # At least 50% within 20%
+            validation_results['mean_percentage_error'] < 50 and  
+            validation_results['predictions_within_20_percent'] > len(predictions_df) * 0.5  
         )
         
         return is_valid, validation_results

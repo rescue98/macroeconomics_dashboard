@@ -10,7 +10,6 @@ from io import StringIO, BytesIO
 import numpy as np
 import time
 
-# Default arguments
 default_args = {
     'owner': 'data-team',
     'depends_on_past': False,
@@ -21,7 +20,6 @@ default_args = {
     'retry_delay': timedelta(minutes=10)
 }
 
-# DAG definition
 dag = DAG(
     'etl_worldbank_gdp_pipeline',
     default_args=default_args,
@@ -156,11 +154,9 @@ def transform_worldbank_data(**context):
     
     logging.info(f"Starting transformation with {len(df)} records")
     
-    # 1. Data cleaning and validation
     df = df.dropna(subset=['gdp_value', 'country_code'])
     df = df[df['gdp_value'] > 0]
     
-    # Remove aggregates and non-countries (World Bank includes regional aggregates)
     exclude_codes = [
         'WLD', 'HIC', 'UMC', 'LMC', 'LIC', 'MIC', 'LCN', 'EAS', 'ECS', 'MEA', 
         'NAC', 'SAS', 'SSF', 'ARB', 'CSS', 'CEB', 'EAR', 'EAP', 'TEA', 'EMU',
@@ -171,20 +167,11 @@ def transform_worldbank_data(**context):
     
     logging.info(f"After cleaning: {len(df)} records")
     
-    # 2. Calculate rankings for each year
     df['ranking'] = df.groupby('year')['gdp_value'].rank(method='dense', ascending=False).astype(int)
-    
-    # 3. Calculate GDP in billions for readability
     df['gdp_billion_usd'] = df['gdp_value'] / 1e9
-    
-    # 4. Calculate logarithmic GDP for analysis
     df['log_gdp'] = np.log(df['gdp_value'])
-    
-    # 5. Calculate growth rates (year-over-year)
     df = df.sort_values(['country_code', 'year'])
     df['gdp_growth_rate'] = df.groupby('country_code')['gdp_value'].pct_change() * 100
-    
-    # 6. Add regional classification (expanded)
     def assign_region(country_code):
         north_america = ['USA', 'CAN', 'MEX']
         south_america = ['BRA', 'ARG', 'CHL', 'COL', 'PER', 'VEN', 'ECU', 'URY', 'PRY', 'BOL', 'GUY', 'SUR']
@@ -212,8 +199,6 @@ def transform_worldbank_data(**context):
             return 'Other'
     
     df['region'] = df['country_code'].apply(assign_region)
-    
-    # 7. Add economy size classification
     def classify_economy_size(gdp_value):
         if gdp_value >= 5e12:
             return 'Major'
@@ -229,13 +214,9 @@ def transform_worldbank_data(**context):
             return 'Small'
     
     df['economy_size'] = df['gdp_value'].apply(classify_economy_size)
-    
-    # 8. Add processing metadata
     df['created_at'] = datetime.now()
     df['updated_at'] = datetime.now()
     df['processed_at'] = datetime.now()
-    
-    # 9. Sort by most recent year and ranking
     df = df.sort_values(['year', 'ranking'])
     
     logging.info(f"Transformation completed: {len(df)} records")
@@ -243,7 +224,6 @@ def transform_worldbank_data(**context):
     logging.info(f"Countries: {df['country_code'].nunique()}")
     logging.info(f"Regions: {sorted(df['region'].unique())}")
     
-    # Upload processed data back to MinIO
     processed_csv = df.to_csv(index=False)
     processed_object_name = f"processed/worldbank_data/processed_gdp_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     
@@ -261,8 +241,6 @@ def transform_worldbank_data(**context):
 def load_to_postgres(**context):
     """Load processed World Bank data to PostgreSQL"""
     processed_object_name = context['task_instance'].xcom_pull(task_ids='transform_worldbank_data')
-    
-
     minio_client = Minio(
         'minio:9000',
         access_key='minioadmin',
@@ -324,8 +302,6 @@ def load_to_postgres(**context):
 def validate_worldbank_data():
     """Validate loaded World Bank data quality"""
     postgres_hook = PostgresHook(postgres_conn_id='postgres_default')
-    
-    # Data quality checks
     quality_checks = [
         {
             'name': 'Check for recent data',
@@ -379,7 +355,6 @@ def validate_worldbank_data():
     ]
     
     validation_results = []
-    
     for check in quality_checks:
         try:
             result = postgres_hook.get_first(check['query'])

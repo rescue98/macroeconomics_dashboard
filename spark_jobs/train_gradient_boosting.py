@@ -42,7 +42,6 @@ def load_processed_data(spark):
     print("Loading processed data from MinIO...")
     
     try:
-        # Load World Bank GDP data
         wb_df = spark.read \
             .option("header", "true") \
             .option("inferSchema", "true") \
@@ -50,7 +49,6 @@ def load_processed_data(spark):
         
         print(f"Loaded {wb_df.count()} World Bank GDP records")
         
-        # Load Chilean export data
         export_df = spark.read \
             .option("header", "true") \
             .option("inferSchema", "true") \
